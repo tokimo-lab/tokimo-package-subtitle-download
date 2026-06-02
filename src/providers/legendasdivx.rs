@@ -5,7 +5,9 @@ use scraper::{Element, Html, Selector};
 
 use super::SubtitleProvider;
 use crate::archive::extract_archive;
-use crate::models::{DownloadedSubtitle, SubtitleDownloadRequest, SubtitleSearchRequest, SubtitleSearchResult};
+use crate::models::{
+    DownloadedSubtitle, SubtitleDownloadRequest, SubtitleSearchRequest, SubtitleSearchResult,
+};
 
 const SITE: &str = "https://www.legendasdivx.pt";
 const UA: &str = "Sub-Zero/2";
@@ -102,7 +104,10 @@ impl SubtitleProvider for LegendasDivxProvider {
         "legendasdivx"
     }
 
-    async fn search(&self, request: &SubtitleSearchRequest) -> Result<Vec<SubtitleSearchResult>, String> {
+    async fn search(
+        &self,
+        request: &SubtitleSearchRequest,
+    ) -> Result<Vec<SubtitleSearchResult>, String> {
         let query = request.query.clone().unwrap_or_default();
         if query.trim().is_empty() {
             return Err("legendasdivx: search requires a query".into());
@@ -113,7 +118,10 @@ impl SubtitleProvider for LegendasDivxProvider {
             match self.login(u, p).await {
                 Ok(c) => c,
                 Err(e) => {
-                    tracing::warn!("legendasdivx: login failed ({}), continuing unauthenticated", e);
+                    tracing::warn!(
+                        "legendasdivx: login failed ({}), continuing unauthenticated",
+                        e
+                    );
                     build_client(false)?
                 }
             }
@@ -129,7 +137,8 @@ impl SubtitleProvider for LegendasDivxProvider {
             "&form_cat=28"
         };
 
-        let encoded_query = url::form_urlencoded::byte_serialize(format!("\"{query}\"").as_bytes()).collect::<String>();
+        let encoded_query = url::form_urlencoded::byte_serialize(format!("\"{query}\"").as_bytes())
+            .collect::<String>();
 
         let search_url = format!(
             "{SITE}/modules.php?name=Downloads&file=jz&d_op=search&op=_jz00&query={encoded_query}&temporada=&episodio=&imdb={lang_filter}"
@@ -144,7 +153,10 @@ impl SubtitleProvider for LegendasDivxProvider {
 
         let status = resp.status().as_u16();
         if status == 302 {
-            return Err("legendasdivx: redirected to login page; credentials may be required or expired".into());
+            return Err(
+                "legendasdivx: redirected to login page; credentials may be required or expired"
+                    .into(),
+            );
         }
         if !resp.status().is_success() {
             return Err(format!("legendasdivx: search HTTP {status}"));
@@ -162,7 +174,10 @@ impl SubtitleProvider for LegendasDivxProvider {
         parse_search_results(&html)
     }
 
-    async fn download(&self, request: &SubtitleDownloadRequest) -> Result<DownloadedSubtitle, String> {
+    async fn download(
+        &self,
+        request: &SubtitleDownloadRequest,
+    ) -> Result<DownloadedSubtitle, String> {
         let url = request
             .download_path
             .as_deref()
@@ -185,7 +200,10 @@ impl SubtitleProvider for LegendasDivxProvider {
             .await
             .map_err(|e| format!("legendasdivx: download request: {e}"))?;
         if !resp.status().is_success() {
-            return Err(format!("legendasdivx: download HTTP {}", resp.status().as_u16()));
+            return Err(format!(
+                "legendasdivx: download HTTP {}",
+                resp.status().as_u16()
+            ));
         }
 
         let bytes = resp
@@ -204,10 +222,14 @@ fn parse_search_results(html: &str) -> Result<Vec<SubtitleSearchResult>, String>
     let sub_box_sel = Selector::parse("div.sub_box").map_err(|_| "legendasdivx: selector error")?;
     let th_sel = Selector::parse("th").map_err(|_| "legendasdivx: th selector error")?;
     let _td_sel = Selector::parse("td").map_err(|_| "legendasdivx: td selector error")?;
-    let desc_sel = Selector::parse("td.td_desc").map_err(|_| "legendasdivx: desc selector error")?;
-    let footer_sel = Selector::parse("div.sub_footer").map_err(|_| "legendasdivx: footer selector error")?;
-    let download_sel = Selector::parse("a.sub_download").map_err(|_| "legendasdivx: download selector error")?;
-    let header_sel = Selector::parse("div.sub_header").map_err(|_| "legendasdivx: header selector error")?;
+    let desc_sel =
+        Selector::parse("td.td_desc").map_err(|_| "legendasdivx: desc selector error")?;
+    let footer_sel =
+        Selector::parse("div.sub_footer").map_err(|_| "legendasdivx: footer selector error")?;
+    let download_sel =
+        Selector::parse("a.sub_download").map_err(|_| "legendasdivx: download selector error")?;
+    let header_sel =
+        Selector::parse("div.sub_header").map_err(|_| "legendasdivx: header selector error")?;
     let a_sel = Selector::parse("a").map_err(|_| "legendasdivx: a selector error")?;
     let img_sel = Selector::parse("img").map_err(|_| "legendasdivx: img selector error")?;
 
@@ -221,7 +243,12 @@ fn parse_search_results(html: &str) -> Result<Vec<SubtitleSearchResult>, String>
             let th_text = th.text().collect::<String>();
             if let Some(next_td) = th.next_sibling_element() {
                 if th_text.contains("Hits") {
-                    hits = next_td.text().collect::<String>().trim().parse().unwrap_or(0);
+                    hits = next_td
+                        .text()
+                        .collect::<String>()
+                        .trim()
+                        .parse()
+                        .unwrap_or(0);
                 } else if th_text.contains("Idioma")
                     && let Some(img) = next_td.select(&img_sel).next()
                 {

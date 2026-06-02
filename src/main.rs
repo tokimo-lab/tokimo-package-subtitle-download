@@ -4,23 +4,26 @@ use subtitle_aggregator::{
     aggregator::SubtitleAggregator,
     models::SubtitleSearchRequest,
     providers::{
-        addic7ed::Addic7edProvider, animekalesi::AnimekalesiProvider, animesubinfo::AnimesubinfoProvider,
-        animetosho::AnimeToshoProvider, assrt::AssrtProvider, betaseries::BetaSeriesProvider,
-        bsplayer::BsPlayerProvider, gestdown::GestdownProvider, greeksubs::GreekSubsProvider,
-        greeksubtitles::GreekSubtitlesProvider, hosszupuska::HosszupuskaProvider, jimaku::JimakuProvider,
-        ktuvit::KtuvitProvider, legendasdivx::LegendasDivxProvider, legendasnet::LegendasNetProvider,
+        addic7ed::Addic7edProvider, animekalesi::AnimekalesiProvider,
+        animesubinfo::AnimesubinfoProvider, animetosho::AnimeToshoProvider, assrt::AssrtProvider,
+        betaseries::BetaSeriesProvider, bsplayer::BsPlayerProvider, gestdown::GestdownProvider,
+        greeksubs::GreekSubsProvider, greeksubtitles::GreekSubtitlesProvider,
+        hosszupuska::HosszupuskaProvider, jimaku::JimakuProvider, ktuvit::KtuvitProvider,
+        legendasdivx::LegendasDivxProvider, legendasnet::LegendasNetProvider,
         napiprojekt::NapiprojektProvider, napisy24::Napisy24Provider, nekur::NekurProvider,
-        opensubtitles::OpenSubtitlesProvider, podnapisi::PodnapisiProvider, regielive::RegieLiveProvider,
-        shooter::ShooterProvider, soustitreseu::SoustitreseuProvider, subdl::SubdlProvider, subf2m::Subf2mProvider,
-        subs4free::Subs4FreeProvider, subs4series::Subs4SeriesProvider, subscenter::SubsCenterProvider,
+        opensubtitles::OpenSubtitlesProvider, podnapisi::PodnapisiProvider,
+        regielive::RegieLiveProvider, shooter::ShooterProvider, soustitreseu::SoustitreseuProvider,
+        subdl::SubdlProvider, subf2m::Subf2mProvider, subs4free::Subs4FreeProvider,
+        subs4series::Subs4SeriesProvider, subscenter::SubsCenterProvider,
         subsource::SubSourceProvider, subsro::SubsRoProvider, subssabbz::SubssabbzProvider,
         subsunacs::SubsunacsProvider, subsynchro::SubsynchroProvider, subtis::SubtisProvider,
-        subtitrarinoi::SubtitrariNoiProvider, subtitriid::SubtitriIdProvider, subtitulamostv::SubtitulamosTvProvider,
-        subx::SubxProvider, supersubtitles::SuperSubtitlesProvider, thesubdb::TheSubDbProvider,
+        subtitrarinoi::SubtitrariNoiProvider, subtitriid::SubtitriIdProvider,
+        subtitulamostv::SubtitulamosTvProvider, subx::SubxProvider,
+        supersubtitles::SuperSubtitlesProvider, thesubdb::TheSubDbProvider,
         titlovi::TitloviProvider, titrari::TitrariProvider, titulky::TitulkyProvider,
-        turkcealtyazi::TurkcealtyaziProvider, tvsubtitles::TvSubtitlesProvider, wizdom::WizdomProvider,
-        xsubs::XSubsProvider, xunlei::XunleiSubtitleProvider, yavkanet::YavkanetProvider, yify::YifyProvider,
-        zimuku::ZimukuProvider,
+        turkcealtyazi::TurkcealtyaziProvider, tvsubtitles::TvSubtitlesProvider,
+        wizdom::WizdomProvider, xsubs::XSubsProvider, xunlei::XunleiSubtitleProvider,
+        yavkanet::YavkanetProvider, yify::YifyProvider, zimuku::ZimukuProvider,
     },
 };
 use tracing_subscriber::EnvFilter;
@@ -38,7 +41,9 @@ fn build_aggregator() -> SubtitleAggregator {
 
     // ── Always-on: English / multi-language ─────────────────────────────────
     aggregator.add_provider(Arc::new(PodnapisiProvider::new()));
-    aggregator.add_provider(Arc::new(SubdlProvider::new(std::env::var("SUBDL_API_KEY").ok())));
+    aggregator.add_provider(Arc::new(SubdlProvider::new(
+        std::env::var("SUBDL_API_KEY").ok(),
+    )));
     aggregator.add_provider(Arc::new(Subf2mProvider::new(staging)));
     aggregator.add_provider(Arc::new(YifyProvider::new(staging)));
     aggregator.add_provider(Arc::new(TvSubtitlesProvider::new()));
@@ -134,7 +139,9 @@ fn build_aggregator() -> SubtitleAggregator {
 #[allow(clippy::print_stderr, clippy::print_stdout)]
 async fn main() {
     tracing_subscriber::fmt()
-        .with_env_filter(EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info")))
+        .with_env_filter(
+            EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info")),
+        )
         .init();
 
     let aggregator = build_aggregator();
@@ -142,7 +149,9 @@ async fn main() {
     eprintln!("\n已注册 providers: {:?}", aggregator.provider_names());
     eprintln!("──────────────────────────────────────");
 
-    let query = std::env::args().nth(1).unwrap_or_else(|| "Inception".into());
+    let query = std::env::args()
+        .nth(1)
+        .unwrap_or_else(|| "Inception".into());
     eprintln!("\n搜索: {query}\n");
 
     let request = SubtitleSearchRequest {
@@ -165,7 +174,9 @@ async fn main() {
                     r.language,
                     r.format,
                     r.name,
-                    r.download_count.map(|c| format!("  (↓{c})")).unwrap_or_default()
+                    r.download_count
+                        .map(|c| format!("  (↓{c})"))
+                        .unwrap_or_default()
                 );
             }
             eprintln!(

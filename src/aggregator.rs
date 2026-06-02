@@ -4,24 +4,29 @@ use std::time::Duration;
 use base64::{Engine, engine::general_purpose::STANDARD as BASE64};
 use tokio::sync::mpsc;
 
-use crate::models::{SubtitleDownloadRequest, SubtitleDownloadResponse, SubtitleSearchRequest, SubtitleSearchResult};
+use crate::models::{
+    SubtitleDownloadRequest, SubtitleDownloadResponse, SubtitleSearchRequest, SubtitleSearchResult,
+};
 use crate::providers::SubtitleProvider;
 use crate::providers::{
-    addic7ed::Addic7edProvider, animekalesi::AnimekalesiProvider, animesubinfo::AnimesubinfoProvider,
-    animetosho::AnimeToshoProvider, assrt::AssrtProvider, betaseries::BetaSeriesProvider, bsplayer::BsPlayerProvider,
-    gestdown::GestdownProvider, greeksubs::GreekSubsProvider, greeksubtitles::GreekSubtitlesProvider,
+    addic7ed::Addic7edProvider, animekalesi::AnimekalesiProvider,
+    animesubinfo::AnimesubinfoProvider, animetosho::AnimeToshoProvider, assrt::AssrtProvider,
+    betaseries::BetaSeriesProvider, bsplayer::BsPlayerProvider, gestdown::GestdownProvider,
+    greeksubs::GreekSubsProvider, greeksubtitles::GreekSubtitlesProvider,
     hosszupuska::HosszupuskaProvider, jimaku::JimakuProvider, ktuvit::KtuvitProvider,
-    legendasdivx::LegendasDivxProvider, legendasnet::LegendasNetProvider, napiprojekt::NapiprojektProvider,
-    napisy24::Napisy24Provider, nekur::NekurProvider, opensubtitles::OpenSubtitlesProvider,
-    podnapisi::PodnapisiProvider, regielive::RegieLiveProvider, shooter::ShooterProvider,
-    soustitreseu::SoustitreseuProvider, subdl::SubdlProvider, subf2m::Subf2mProvider, subs4free::Subs4FreeProvider,
+    legendasdivx::LegendasDivxProvider, legendasnet::LegendasNetProvider,
+    napiprojekt::NapiprojektProvider, napisy24::Napisy24Provider, nekur::NekurProvider,
+    opensubtitles::OpenSubtitlesProvider, podnapisi::PodnapisiProvider,
+    regielive::RegieLiveProvider, shooter::ShooterProvider, soustitreseu::SoustitreseuProvider,
+    subdl::SubdlProvider, subf2m::Subf2mProvider, subs4free::Subs4FreeProvider,
     subs4series::Subs4SeriesProvider, subscenter::SubsCenterProvider, subsource::SubSourceProvider,
-    subsro::SubsRoProvider, subssabbz::SubssabbzProvider, subsunacs::SubsunacsProvider, subsynchro::SubsynchroProvider,
-    subtis::SubtisProvider, subtitrarinoi::SubtitrariNoiProvider, subtitriid::SubtitriIdProvider,
-    subtitulamostv::SubtitulamosTvProvider, subx::SubxProvider, supersubtitles::SuperSubtitlesProvider,
-    thesubdb::TheSubDbProvider, titlovi::TitloviProvider, titrari::TitrariProvider, titulky::TitulkyProvider,
-    turkcealtyazi::TurkcealtyaziProvider, tvsubtitles::TvSubtitlesProvider, wizdom::WizdomProvider,
-    xsubs::XSubsProvider, xunlei::XunleiSubtitleProvider, yavkanet::YavkanetProvider, yify::YifyProvider,
+    subsro::SubsRoProvider, subssabbz::SubssabbzProvider, subsunacs::SubsunacsProvider,
+    subsynchro::SubsynchroProvider, subtis::SubtisProvider, subtitrarinoi::SubtitrariNoiProvider,
+    subtitriid::SubtitriIdProvider, subtitulamostv::SubtitulamosTvProvider, subx::SubxProvider,
+    supersubtitles::SuperSubtitlesProvider, thesubdb::TheSubDbProvider, titlovi::TitloviProvider,
+    titrari::TitrariProvider, titulky::TitulkyProvider, turkcealtyazi::TurkcealtyaziProvider,
+    tvsubtitles::TvSubtitlesProvider, wizdom::WizdomProvider, xsubs::XSubsProvider,
+    xunlei::XunleiSubtitleProvider, yavkanet::YavkanetProvider, yify::YifyProvider,
     zimuku::ZimukuProvider,
 };
 
@@ -34,7 +39,9 @@ pub struct SubtitleAggregator {
 
 impl SubtitleAggregator {
     pub fn new() -> Self {
-        Self { providers: Vec::new() }
+        Self {
+            providers: Vec::new(),
+        }
     }
 
     /// Build an aggregator with all supported providers registered.
@@ -51,7 +58,9 @@ impl SubtitleAggregator {
 
         // ── English / multi-language ──
         agg.add_provider(Arc::new(PodnapisiProvider::new()));
-        agg.add_provider(Arc::new(SubdlProvider::new(std::env::var("SUBDL_API_KEY").ok())));
+        agg.add_provider(Arc::new(SubdlProvider::new(
+            std::env::var("SUBDL_API_KEY").ok(),
+        )));
         agg.add_provider(Arc::new(Subf2mProvider::new(staging)));
         agg.add_provider(Arc::new(YifyProvider::new(staging)));
         agg.add_provider(Arc::new(TvSubtitlesProvider::new()));
@@ -117,11 +126,13 @@ impl SubtitleAggregator {
             agg.add_provider(Arc::new(JimakuProvider::new(api_key)));
         }
 
-        if let (Ok(user), Ok(pass)) = (std::env::var("TITLOVI_USER"), std::env::var("TITLOVI_PASS")) {
+        if let (Ok(user), Ok(pass)) = (std::env::var("TITLOVI_USER"), std::env::var("TITLOVI_PASS"))
+        {
             agg.add_provider(Arc::new(TitloviProvider::new(user, pass, staging)));
         }
 
-        if let (Ok(user), Ok(pass)) = (std::env::var("TITULKY_USER"), std::env::var("TITULKY_PASS")) {
+        if let (Ok(user), Ok(pass)) = (std::env::var("TITULKY_USER"), std::env::var("TITULKY_PASS"))
+        {
             agg.add_provider(Arc::new(TitulkyProvider::new(user, pass, staging)));
         }
 
@@ -145,7 +156,10 @@ impl SubtitleAggregator {
 
     /// Concurrently search all providers, merge results.
     /// Each provider is given PROVIDER_TIMEOUT seconds before being cancelled.
-    pub async fn search(&self, request: &SubtitleSearchRequest) -> Result<Vec<SubtitleSearchResult>, String> {
+    pub async fn search(
+        &self,
+        request: &SubtitleSearchRequest,
+    ) -> Result<Vec<SubtitleSearchResult>, String> {
         // Wrap in Arc so each spawned task increments a ref-count instead of cloning all strings.
         let request = Arc::new(request.clone());
         let mut handles = Vec::with_capacity(self.providers.len());
@@ -175,7 +189,11 @@ impl SubtitleAggregator {
 
     /// Streaming search: sends each provider's results as soon as they arrive.
     /// The sender is closed automatically when all providers complete.
-    pub async fn search_streaming(&self, request: SubtitleSearchRequest, tx: mpsc::Sender<Vec<SubtitleSearchResult>>) {
+    pub async fn search_streaming(
+        &self,
+        request: SubtitleSearchRequest,
+        tx: mpsc::Sender<Vec<SubtitleSearchResult>>,
+    ) {
         let request = Arc::new(request);
         let mut handles = Vec::with_capacity(self.providers.len());
 
@@ -201,7 +219,10 @@ impl SubtitleAggregator {
     }
 
     /// Download from the specific provider
-    pub async fn download(&self, request: &SubtitleDownloadRequest) -> Result<SubtitleDownloadResponse, String> {
+    pub async fn download(
+        &self,
+        request: &SubtitleDownloadRequest,
+    ) -> Result<SubtitleDownloadResponse, String> {
         let provider = self
             .providers
             .iter()

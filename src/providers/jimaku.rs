@@ -2,7 +2,9 @@ use async_trait::async_trait;
 use serde::Deserialize;
 
 use super::SubtitleProvider;
-use crate::models::{DownloadedSubtitle, SubtitleDownloadRequest, SubtitleSearchRequest, SubtitleSearchResult};
+use crate::models::{
+    DownloadedSubtitle, SubtitleDownloadRequest, SubtitleSearchRequest, SubtitleSearchResult,
+};
 
 const JIMAKU_API_BASE: &str = "https://jimaku.cc/api";
 
@@ -64,7 +66,10 @@ impl SubtitleProvider for JimakuProvider {
         "jimaku"
     }
 
-    async fn search(&self, request: &SubtitleSearchRequest) -> Result<Vec<SubtitleSearchResult>, String> {
+    async fn search(
+        &self,
+        request: &SubtitleSearchRequest,
+    ) -> Result<Vec<SubtitleSearchResult>, String> {
         if self.api_key.is_empty() {
             return Err("Jimaku API key is not set".into());
         }
@@ -118,7 +123,11 @@ impl SubtitleProvider for JimakuProvider {
             .or_else(|| entry.name.clone())
             .or_else(|| entry.japanese_name.clone());
 
-        tracing::info!("Jimaku: matched entry id={}, name={:?}", entry.id, movie_name);
+        tracing::info!(
+            "Jimaku: matched entry id={}, name={:?}",
+            entry.id,
+            movie_name
+        );
 
         // Fetch files for this entry
         let files_url = format!("{JIMAKU_API_BASE}/entries/{}/files", entry.id);
@@ -156,7 +165,8 @@ impl SubtitleProvider for JimakuProvider {
                 !f.name.ends_with(".7z")
             })
             .map(|f| {
-                let format = crate::models::normalize_format(&f.name).unwrap_or_else(|| "srt".into());
+                let format =
+                    crate::models::normalize_format(&f.name).unwrap_or_else(|| "srt".into());
                 let (language, language_name) = Self::detect_language(&f.name);
                 SubtitleSearchResult {
                     id: f.id.to_string(),
@@ -178,8 +188,14 @@ impl SubtitleProvider for JimakuProvider {
         Ok(results)
     }
 
-    async fn download(&self, request: &SubtitleDownloadRequest) -> Result<DownloadedSubtitle, String> {
-        let download_url = request.download_path.as_deref().ok_or("Jimaku download missing URL")?;
+    async fn download(
+        &self,
+        request: &SubtitleDownloadRequest,
+    ) -> Result<DownloadedSubtitle, String> {
+        let download_url = request
+            .download_path
+            .as_deref()
+            .ok_or("Jimaku download missing URL")?;
 
         let client = self.build_client()?;
 
@@ -196,14 +212,18 @@ impl SubtitleProvider for JimakuProvider {
             return Err(format!("Jimaku download failed ({status}): {body}"));
         }
 
-        let file_name = request.name.clone().unwrap_or_else(|| "subtitle.srt".to_string());
+        let file_name = request
+            .name
+            .clone()
+            .unwrap_or_else(|| "subtitle.srt".to_string());
 
         let content = response
             .bytes()
             .await
             .map_err(|e| format!("Failed to read Jimaku subtitle content: {e}"))?;
 
-        let format = crate::models::normalize_format(&file_name).unwrap_or_else(|| request.format.clone());
+        let format =
+            crate::models::normalize_format(&file_name).unwrap_or_else(|| request.format.clone());
 
         Ok(DownloadedSubtitle {
             name: file_name,

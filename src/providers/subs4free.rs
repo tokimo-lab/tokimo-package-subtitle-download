@@ -11,8 +11,7 @@ use crate::models::{
 };
 
 const SUBS4FREE_BASE: &str = "https://www.subs4free.info";
-const USER_AGENT: &str =
-    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
+const USER_AGENT: &str = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
 
 pub struct Subs4FreeProvider {
     staging_root: PathBuf,
@@ -40,11 +39,15 @@ impl SubtitleProvider for Subs4FreeProvider {
         "subs4free"
     }
 
-    async fn search(&self, request: &SubtitleSearchRequest) -> Result<Vec<SubtitleSearchResult>, String> {
+    async fn search(
+        &self,
+        request: &SubtitleSearchRequest,
+    ) -> Result<Vec<SubtitleSearchResult>, String> {
         let query = request.query.as_deref().ok_or("subs4free requires query")?;
 
         let encoded = url::form_urlencoded::byte_serialize(query.as_bytes()).collect::<String>();
-        let search_url = format!("{SUBS4FREE_BASE}/search_report.php?search={encoded}&searchType=1");
+        let search_url =
+            format!("{SUBS4FREE_BASE}/search_report.php?search={encoded}&searchType=1");
 
         let client = build_client()?;
         let resp = client
@@ -57,7 +60,10 @@ impl SubtitleProvider for Subs4FreeProvider {
             return Err(format!("subs4free search failed: {}", resp.status()));
         }
 
-        let html = resp.text().await.map_err(|e| format!("subs4free read error: {e}"))?;
+        let html = resp
+            .text()
+            .await
+            .map_err(|e| format!("subs4free read error: {e}"))?;
 
         let show_link = {
             let document = Html::parse_document(&html);
@@ -67,7 +73,11 @@ impl SubtitleProvider for Subs4FreeProvider {
                 .select(&option_sel)
                 .find_map(|opt| {
                     let val = opt.value().attr("value").unwrap_or("").trim().to_string();
-                    if !val.is_empty() && val != "#" { Some(val) } else { None }
+                    if !val.is_empty() && val != "#" {
+                        Some(val)
+                    } else {
+                        None
+                    }
                 })
                 .ok_or("subs4free: no show options found")?
         };
@@ -86,7 +96,10 @@ impl SubtitleProvider for Subs4FreeProvider {
             .map_err(|e| format!("subs4free show request failed: {e}"))?;
 
         if !show_resp.status().is_success() {
-            return Err(format!("subs4free show request failed: {}", show_resp.status()));
+            return Err(format!(
+                "subs4free show request failed: {}",
+                show_resp.status()
+            ));
         }
 
         let show_html = show_resp
@@ -96,10 +109,13 @@ impl SubtitleProvider for Subs4FreeProvider {
 
         let show_doc = Html::parse_document(&show_html);
 
-        let details_sel = Selector::parse(".movie-details").map_err(|e| format!("subs4free selector error: {e}"))?;
-        let span_sel = Selector::parse("span").map_err(|e| format!("subs4free selector error: {e}"))?;
+        let details_sel = Selector::parse(".movie-details")
+            .map_err(|e| format!("subs4free selector error: {e}"))?;
+        let span_sel =
+            Selector::parse("span").map_err(|e| format!("subs4free selector error: {e}"))?;
         let a_sel = Selector::parse("a").map_err(|e| format!("subs4free selector error: {e}"))?;
-        let img_sel = Selector::parse("img").map_err(|e| format!("subs4free selector error: {e}"))?;
+        let img_sel =
+            Selector::parse("img").map_err(|e| format!("subs4free selector error: {e}"))?;
 
         let mut results = Vec::new();
 
@@ -132,10 +148,11 @@ impl SubtitleProvider for Subs4FreeProvider {
                 .find_map(|img| {
                     let classes = img.value().attr("class").unwrap_or("");
                     // second class name, strip 'gif' suffix
-                    classes
-                        .split_whitespace()
-                        .nth(1)
-                        .map(|c| c.trim_end_matches("gif").trim_end_matches('.').to_lowercase())
+                    classes.split_whitespace().nth(1).map(|c| {
+                        c.trim_end_matches("gif")
+                            .trim_end_matches('.')
+                            .to_lowercase()
+                    })
                 })
                 .unwrap_or_else(|| "el".to_string());
 
@@ -145,7 +162,10 @@ impl SubtitleProvider for Subs4FreeProvider {
 
             let id = format!(
                 "subs4free-{}",
-                href.trim_end_matches('/').rsplit('/').next().unwrap_or(&version)
+                href.trim_end_matches('/')
+                    .rsplit('/')
+                    .next()
+                    .unwrap_or(&version)
             );
 
             results.push(SubtitleSearchResult {
@@ -167,7 +187,10 @@ impl SubtitleProvider for Subs4FreeProvider {
         Ok(results)
     }
 
-    async fn download(&self, request: &SubtitleDownloadRequest) -> Result<DownloadedSubtitle, String> {
+    async fn download(
+        &self,
+        request: &SubtitleDownloadRequest,
+    ) -> Result<DownloadedSubtitle, String> {
         let download_url = request
             .download_path
             .as_deref()
@@ -185,11 +208,15 @@ impl SubtitleProvider for Subs4FreeProvider {
             return Err(format!("subs4free GET failed: {}", resp.status()));
         }
 
-        let html = resp.text().await.map_err(|e| format!("subs4free read error: {e}"))?;
+        let html = resp
+            .text()
+            .await
+            .map_err(|e| format!("subs4free read error: {e}"))?;
 
         let subtitle_id = {
             let document = Html::parse_document(&html);
-            let id_sel = Selector::parse("input[name=\"id\"]").map_err(|e| format!("subs4free selector error: {e}"))?;
+            let id_sel = Selector::parse("input[name=\"id\"]")
+                .map_err(|e| format!("subs4free selector error: {e}"))?;
             document
                 .select(&id_sel)
                 .next()
@@ -218,6 +245,12 @@ impl SubtitleProvider for Subs4FreeProvider {
             .await
             .map_err(|e| format!("subs4free read content error: {e}"))?;
 
-        extract_archive(&content, "subtitle.zip", &request.language, &self.staging_root).await
+        extract_archive(
+            &content,
+            "subtitle.zip",
+            &request.language,
+            &self.staging_root,
+        )
+        .await
     }
 }

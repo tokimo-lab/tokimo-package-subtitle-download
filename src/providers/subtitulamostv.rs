@@ -2,11 +2,12 @@ use async_trait::async_trait;
 use scraper::{Html, Selector};
 
 use super::SubtitleProvider;
-use crate::models::{DownloadedSubtitle, SubtitleDownloadRequest, SubtitleSearchRequest, SubtitleSearchResult};
+use crate::models::{
+    DownloadedSubtitle, SubtitleDownloadRequest, SubtitleSearchRequest, SubtitleSearchResult,
+};
 
 const SUBTITULAMOS_BASE_URL: &str = "https://www.subtitulamos.tv";
-const SUBTITULAMOS_USER_AGENT: &str =
-    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
+const SUBTITULAMOS_USER_AGENT: &str = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
 
 pub struct SubtitulamosTvProvider;
 
@@ -47,7 +48,10 @@ impl SubtitleProvider for SubtitulamosTvProvider {
         "subtitulamostv"
     }
 
-    async fn search(&self, request: &SubtitleSearchRequest) -> Result<Vec<SubtitleSearchResult>, String> {
+    async fn search(
+        &self,
+        request: &SubtitleSearchRequest,
+    ) -> Result<Vec<SubtitleSearchResult>, String> {
         let query = request
             .query
             .as_deref()
@@ -80,8 +84,14 @@ impl SubtitleProvider for SubtitulamosTvProvider {
         let mut results = Vec::new();
 
         for show in &shows {
-            let show_name = show.get("show_name").and_then(|v| v.as_str()).unwrap_or_default();
-            let show_id = show.get("show_id").and_then(serde_json::Value::as_u64).unwrap_or(0);
+            let show_name = show
+                .get("show_name")
+                .and_then(|v| v.as_str())
+                .unwrap_or_default();
+            let show_id = show
+                .get("show_id")
+                .and_then(serde_json::Value::as_u64)
+                .unwrap_or(0);
 
             if show_id == 0 {
                 continue;
@@ -107,15 +117,16 @@ impl SubtitleProvider for SubtitulamosTvProvider {
             let document = Html::parse_document(&html);
 
             // Find all language containers
-            let lang_sel =
-                Selector::parse("div.language-container").map_err(|e| format!("SubtitulamosTV selector error: {e}"))?;
-            let lang_name_sel =
-                Selector::parse("div.language-name").map_err(|e| format!("SubtitulamosTV selector error: {e}"))?;
-            let version_sel =
-                Selector::parse("div.version-container").map_err(|e| format!("SubtitulamosTV selector error: {e}"))?;
-            let dl_sel =
-                Selector::parse("a[href*='/download']").map_err(|e| format!("SubtitulamosTV selector error: {e}"))?;
-            let p_sel = Selector::parse("p").map_err(|e| format!("SubtitulamosTV selector error: {e}"))?;
+            let lang_sel = Selector::parse("div.language-container")
+                .map_err(|e| format!("SubtitulamosTV selector error: {e}"))?;
+            let lang_name_sel = Selector::parse("div.language-name")
+                .map_err(|e| format!("SubtitulamosTV selector error: {e}"))?;
+            let version_sel = Selector::parse("div.version-container")
+                .map_err(|e| format!("SubtitulamosTV selector error: {e}"))?;
+            let dl_sel = Selector::parse("a[href*='/download']")
+                .map_err(|e| format!("SubtitulamosTV selector error: {e}"))?;
+            let p_sel =
+                Selector::parse("p").map_err(|e| format!("SubtitulamosTV selector error: {e}"))?;
 
             for lang_container in document.select(&lang_sel) {
                 let lang_name = lang_container
@@ -132,7 +143,11 @@ impl SubtitleProvider for SubtitulamosTvProvider {
                     continue;
                 };
 
-                let language_name = if language == "en" { "English" } else { "Español" };
+                let language_name = if language == "en" {
+                    "English"
+                } else {
+                    "Español"
+                };
 
                 for version in lang_container.select(&version_sel) {
                     let dl_links: Vec<_> = version.select(&dl_sel).collect();
@@ -174,7 +189,10 @@ impl SubtitleProvider for SubtitulamosTvProvider {
         Ok(results)
     }
 
-    async fn download(&self, request: &SubtitleDownloadRequest) -> Result<DownloadedSubtitle, String> {
+    async fn download(
+        &self,
+        request: &SubtitleDownloadRequest,
+    ) -> Result<DownloadedSubtitle, String> {
         let download_url = request
             .download_path
             .as_deref()
@@ -200,7 +218,10 @@ impl SubtitleProvider for SubtitulamosTvProvider {
             .map_err(|e| format!("Failed to read SubtitulamosTV download: {e}"))?;
 
         let format = request.format.clone();
-        let name = request.name.clone().unwrap_or_else(|| format!("subtitle.{format}"));
+        let name = request
+            .name
+            .clone()
+            .unwrap_or_else(|| format!("subtitle.{format}"));
 
         Ok(DownloadedSubtitle {
             name,

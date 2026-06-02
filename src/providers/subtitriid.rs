@@ -2,7 +2,9 @@ use async_trait::async_trait;
 use scraper::{Html, Selector};
 
 use super::SubtitleProvider;
-use crate::models::{DownloadedSubtitle, SubtitleDownloadRequest, SubtitleSearchRequest, SubtitleSearchResult};
+use crate::models::{
+    DownloadedSubtitle, SubtitleDownloadRequest, SubtitleSearchRequest, SubtitleSearchResult,
+};
 
 const SUBTITRIID_BASE: &str = "https://subtitri.do.am";
 const STAGING_ROOT: &str = "/tmp/subtitle-aggregator";
@@ -27,8 +29,14 @@ impl SubtitleProvider for SubtitriIdProvider {
         "subtitriid"
     }
 
-    async fn search(&self, request: &SubtitleSearchRequest) -> Result<Vec<SubtitleSearchResult>, String> {
-        let title = request.query.as_deref().ok_or("subtitriid: query is required")?;
+    async fn search(
+        &self,
+        request: &SubtitleSearchRequest,
+    ) -> Result<Vec<SubtitleSearchResult>, String> {
+        let title = request
+            .query
+            .as_deref()
+            .ok_or("subtitriid: query is required")?;
 
         let client = reqwest::Client::builder()
             .user_agent("subtitle-aggregator/0.1")
@@ -57,8 +65,10 @@ impl SubtitleProvider for SubtitriIdProvider {
         let page_links: Vec<(String, String)> = {
             let document = Html::parse_document(&html);
 
-            let block_sel = Selector::parse(".eBlock").map_err(|e| format!("subtitriid: selector error: {e}"))?;
-            let title_sel = Selector::parse(".eTitle > a").map_err(|e| format!("subtitriid: selector error: {e}"))?;
+            let block_sel = Selector::parse(".eBlock")
+                .map_err(|e| format!("subtitriid: selector error: {e}"))?;
+            let title_sel = Selector::parse(".eTitle > a")
+                .map_err(|e| format!("subtitriid: selector error: {e}"))?;
 
             let mut links: Vec<(String, String)> = Vec::new();
 
@@ -92,7 +102,10 @@ impl SubtitleProvider for SubtitriIdProvider {
         Ok(results)
     }
 
-    async fn download(&self, request: &SubtitleDownloadRequest) -> Result<DownloadedSubtitle, String> {
+    async fn download(
+        &self,
+        request: &SubtitleDownloadRequest,
+    ) -> Result<DownloadedSubtitle, String> {
         let url = request
             .download_path
             .as_deref()
@@ -125,7 +138,8 @@ impl SubtitleProvider for SubtitriIdProvider {
 
         if content.starts_with(b"PK") || content.starts_with(b"Rar!") {
             let staging = std::path::Path::new(STAGING_ROOT);
-            return crate::archive::extract_archive(&content, &name, &request.language, staging).await;
+            return crate::archive::extract_archive(&content, &name, &request.language, staging)
+                .await;
         }
 
         let format = request.format.clone();
@@ -161,8 +175,10 @@ impl SubtitriIdProvider {
 
         let document = Html::parse_document(&html);
 
-        let header_sel = Selector::parse(".main-header").map_err(|e| format!("subtitriid: selector error: {e}"))?;
-        let dl_sel = Selector::parse(".hvr").map_err(|e| format!("subtitriid: selector error: {e}"))?;
+        let header_sel = Selector::parse(".main-header")
+            .map_err(|e| format!("subtitriid: selector error: {e}"))?;
+        let dl_sel =
+            Selector::parse(".hvr").map_err(|e| format!("subtitriid: selector error: {e}"))?;
 
         // Extract title
         let title = document
@@ -191,7 +207,11 @@ impl SubtitriIdProvider {
             };
 
             // ID from last segment of page_url + index
-            let page_id = page_url.trim_end_matches('/').rsplit('/').next().unwrap_or("unknown");
+            let page_id = page_url
+                .trim_end_matches('/')
+                .rsplit('/')
+                .next()
+                .unwrap_or("unknown");
 
             let sub_id = format!("{page_id}_{i}");
             let dl_text = dl_el.text().collect::<String>().trim().to_string();

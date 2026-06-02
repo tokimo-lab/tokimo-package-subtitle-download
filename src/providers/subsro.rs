@@ -8,7 +8,8 @@ use scraper::{Html, Selector};
 use super::SubtitleProvider;
 use crate::archive::extract_archive;
 use crate::models::{
-    DownloadedSubtitle, SubtitleDownloadRequest, SubtitleSearchRequest, SubtitleSearchResult, normalize_format,
+    DownloadedSubtitle, SubtitleDownloadRequest, SubtitleSearchRequest, SubtitleSearchResult,
+    normalize_format,
 };
 
 const BASE_URL: &str = "https://subs.ro";
@@ -40,8 +41,14 @@ impl SubtitleProvider for SubsRoProvider {
         "subsro"
     }
 
-    async fn search(&self, request: &SubtitleSearchRequest) -> Result<Vec<SubtitleSearchResult>, String> {
-        let imdb_id = request.imdb_id.as_deref().ok_or("SubsRo: search requires an IMDB ID")?;
+    async fn search(
+        &self,
+        request: &SubtitleSearchRequest,
+    ) -> Result<Vec<SubtitleSearchResult>, String> {
+        let imdb_id = request
+            .imdb_id
+            .as_deref()
+            .ok_or("SubsRo: search requires an IMDB ID")?;
 
         // Strip leading "tt" prefix to get numeric ID
         let raw_id = imdb_id.trim_start_matches("tt");
@@ -59,7 +66,10 @@ impl SubtitleProvider for SubsRoProvider {
             .map_err(|e| format!("SubsRo: search request failed: {e}"))?;
 
         if !resp.status().is_success() {
-            return Err(format!("SubsRo: search failed with HTTP {}", resp.status().as_u16()));
+            return Err(format!(
+                "SubsRo: search failed with HTTP {}",
+                resp.status().as_u16()
+            ));
         }
 
         let html = resp
@@ -81,7 +91,10 @@ impl SubtitleProvider for SubsRoProvider {
         parse_subsro_results(&html, &format!("tt{raw_id}"), want_ro, want_en)
     }
 
-    async fn download(&self, request: &SubtitleDownloadRequest) -> Result<DownloadedSubtitle, String> {
+    async fn download(
+        &self,
+        request: &SubtitleDownloadRequest,
+    ) -> Result<DownloadedSubtitle, String> {
         let url = request
             .download_path
             .as_deref()
@@ -97,7 +110,10 @@ impl SubtitleProvider for SubsRoProvider {
             .map_err(|e| format!("SubsRo: download request failed: {e}"))?;
 
         if !resp.status().is_success() {
-            return Err(format!("SubsRo: download failed with HTTP {}", resp.status().as_u16()));
+            return Err(format!(
+                "SubsRo: download failed with HTTP {}",
+                resp.status().as_u16()
+            ));
         }
 
         let file_name = resp
@@ -105,7 +121,8 @@ impl SubtitleProvider for SubsRoProvider {
             .get("content-disposition")
             .and_then(|v| v.to_str().ok())
             .and_then(|v| {
-                let re = regex::Regex::new(r#"filename[^;=\n]*=(?:'([^']*)'|"([^"]*)"|([^;\n]*))"#).ok()?;
+                let re = regex::Regex::new(r#"filename[^;=\n]*=(?:'([^']*)'|"([^"]*)"|([^;\n]*))"#)
+                    .ok()?;
                 re.captures(v)
                     .and_then(|c| c.get(1).or_else(|| c.get(2)).or_else(|| c.get(3)))
                     .map(|m| m.as_str().trim().to_string())
@@ -139,15 +156,18 @@ fn parse_subsro_results(
     let mut results = Vec::new();
 
     // Each subtitle result is in div.md:col-span-6
-    let item_sel = Selector::parse("div.md\\:col-span-6").map_err(|e| format!("SubsRo: selector error: {e}"))?;
+    let item_sel = Selector::parse("div.md\\:col-span-6")
+        .map_err(|e| format!("SubsRo: selector error: {e}"))?;
     let img_sel = Selector::parse("img").map_err(|e| format!("SubsRo: selector error: {e}"))?;
     let h1_sel = Selector::parse("h1 a").map_err(|e| format!("SubsRo: selector error: {e}"))?;
-    let dl_link_sel = Selector::parse("div a").map_err(|e| format!("SubsRo: selector error: {e}"))?;
+    let dl_link_sel =
+        Selector::parse("div a").map_err(|e| format!("SubsRo: selector error: {e}"))?;
 
     let year_re = Regex::new(r"\((\d{4})\)").map_err(|e| format!("SubsRo: regex error: {e}"))?;
-    let season_re = Regex::new(r"Sezonul\s*(\d+)").map_err(|e| format!("SubsRo: regex error: {e}"))?;
-    let title_strip_re =
-        Regex::new(r"\s*(-\s*Sezonul\s*\d+)?\s*\(\d{4}\).*$").map_err(|e| format!("SubsRo: regex error: {e}"))?;
+    let season_re =
+        Regex::new(r"Sezonul\s*(\d+)").map_err(|e| format!("SubsRo: regex error: {e}"))?;
+    let title_strip_re = Regex::new(r"\s*(-\s*Sezonul\s*\d+)?\s*\(\d{4}\).*$")
+        .map_err(|e| format!("SubsRo: regex error: {e}"))?;
 
     for (index, item) in document.select(&item_sel).enumerate() {
         // Determine language from flag image
@@ -172,7 +192,11 @@ fn parse_subsro_results(
             continue;
         };
 
-        let language_name = if language == "ro" { "Romanian" } else { "English" };
+        let language_name = if language == "ro" {
+            "Romanian"
+        } else {
+            "English"
+        };
 
         // Download link
         let download_href = match item.select(&dl_link_sel).next() {
@@ -240,7 +264,9 @@ fn parse_subsro_results(
             download_count: None,
             rating: None,
             movie_name: Some(title),
-            release_group: release_info.map(|s| s.trim().to_string()).filter(|s| !s.is_empty()),
+            release_group: release_info
+                .map(|s| s.trim().to_string())
+                .filter(|s| !s.is_empty()),
         });
         let _ = imdb_id;
         let _ = season_re;

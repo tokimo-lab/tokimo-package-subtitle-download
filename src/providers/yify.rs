@@ -12,8 +12,7 @@ use crate::models::{
 };
 
 const YIFY_BASE_URL: &str = "https://yifysubtitles.ch";
-const YIFY_USER_AGENT: &str =
-    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
+const YIFY_USER_AGENT: &str = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
 
 pub struct YifyProvider {
     staging_root: PathBuf,
@@ -114,7 +113,10 @@ async fn fetch_yify_html(url: &str) -> Result<String, String> {
         .map_err(|e| format!("YIFY request failed: {e}"))?;
 
     if !response.status().is_success() {
-        return Err(format!("YIFY request failed: {}", response.status().as_u16()));
+        return Err(format!(
+            "YIFY request failed: {}",
+            response.status().as_u16()
+        ));
     }
 
     response
@@ -123,10 +125,14 @@ async fn fetch_yify_html(url: &str) -> Result<String, String> {
         .map_err(|e| format!("Failed to read YIFY response: {e}"))
 }
 
-fn parse_movie_page(html: &str, requested_languages: Option<&[String]>) -> Result<Vec<SubtitleSearchResult>, String> {
+fn parse_movie_page(
+    html: &str,
+    requested_languages: Option<&[String]>,
+) -> Result<Vec<SubtitleSearchResult>, String> {
     let document = Html::parse_document(html);
 
-    let table_sel = Selector::parse("table.other-subs").map_err(|e| format!("YIFY selector error: {e}"))?;
+    let table_sel =
+        Selector::parse("table.other-subs").map_err(|e| format!("YIFY selector error: {e}"))?;
     let tbody_sel = Selector::parse("tbody").map_err(|e| format!("YIFY selector error: {e}"))?;
     let tr_sel = Selector::parse("tr").map_err(|e| format!("YIFY selector error: {e}"))?;
     let td_sel = Selector::parse("td").map_err(|e| format!("YIFY selector error: {e}"))?;
@@ -182,7 +188,11 @@ fn parse_movie_page(html: &str, requested_languages: Option<&[String]>) -> Resul
 
         results.push(SubtitleSearchResult {
             id,
-            name: if release.is_empty() { lang_name.clone() } else { release },
+            name: if release.is_empty() {
+                lang_name.clone()
+            } else {
+                release
+            },
             language: lang_code,
             language_name: lang_name,
             format: "srt".into(),
@@ -192,11 +202,19 @@ fn parse_movie_page(html: &str, requested_languages: Option<&[String]>) -> Resul
             download_count: None,
             rating,
             movie_name: None,
-            release_group: if uploader.is_empty() { None } else { Some(uploader) },
+            release_group: if uploader.is_empty() {
+                None
+            } else {
+                Some(uploader)
+            },
         });
     }
 
-    results.sort_by(|a, b| b.rating.partial_cmp(&a.rating).unwrap_or(std::cmp::Ordering::Equal));
+    results.sort_by(|a, b| {
+        b.rating
+            .partial_cmp(&a.rating)
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
 
     Ok(results)
 }
@@ -207,7 +225,10 @@ impl SubtitleProvider for YifyProvider {
         "yify"
     }
 
-    async fn search(&self, request: &SubtitleSearchRequest) -> Result<Vec<SubtitleSearchResult>, String> {
+    async fn search(
+        &self,
+        request: &SubtitleSearchRequest,
+    ) -> Result<Vec<SubtitleSearchResult>, String> {
         let movie_html = if let Some(imdb_id) = &request.imdb_id {
             let url = format!("{YIFY_BASE_URL}/movie-imdb/{imdb_id}");
             let client = build_client()?;
@@ -226,7 +247,10 @@ impl SubtitleProvider for YifyProvider {
                 return Ok(Vec::new());
             }
             if !response.status().is_success() {
-                return Err(format!("YIFY request failed: {}", response.status().as_u16()));
+                return Err(format!(
+                    "YIFY request failed: {}",
+                    response.status().as_u16()
+                ));
             }
 
             response
@@ -247,9 +271,10 @@ impl SubtitleProvider for YifyProvider {
                 let document = Html::parse_document(&search_html);
 
                 // YIFY search results list movie links under .media-body or similar containers
-                let movie_link_sel =
-                    Selector::parse("div.media-body a, ul.media-list a, .subtitle-page a, a[href*='/subtitles/']")
-                        .map_err(|e| format!("YIFY selector error: {e}"))?;
+                let movie_link_sel = Selector::parse(
+                    "div.media-body a, ul.media-list a, .subtitle-page a, a[href*='/subtitles/']",
+                )
+                .map_err(|e| format!("YIFY selector error: {e}"))?;
 
                 document
                     .select(&movie_link_sel)
@@ -267,14 +292,18 @@ impl SubtitleProvider for YifyProvider {
         parse_movie_page(&movie_html, request.languages.as_deref())
     }
 
-    async fn download(&self, request: &SubtitleDownloadRequest) -> Result<DownloadedSubtitle, String> {
+    async fn download(
+        &self,
+        request: &SubtitleDownloadRequest,
+    ) -> Result<DownloadedSubtitle, String> {
         let zip_url = if let Some(dl_path) = &request.download_path {
             absolute_yify_url(dl_path)
         } else if let Some(detail_path) = &request.detail_path {
             let detail_url = absolute_yify_url(detail_path);
             let html = fetch_yify_html(&detail_url).await?;
             let document = Html::parse_document(&html);
-            let dl_sel = Selector::parse("a.download-subtitle").map_err(|e| format!("YIFY selector error: {e}"))?;
+            let dl_sel = Selector::parse("a.download-subtitle")
+                .map_err(|e| format!("YIFY selector error: {e}"))?;
             let href = document
                 .select(&dl_sel)
                 .next()
@@ -296,7 +325,10 @@ impl SubtitleProvider for YifyProvider {
             .map_err(|e| format!("YIFY download failed: {e}"))?;
 
         if !response.status().is_success() {
-            return Err(format!("YIFY download failed: {}", response.status().as_u16()));
+            return Err(format!(
+                "YIFY download failed: {}",
+                response.status().as_u16()
+            ));
         }
 
         let content = response
@@ -311,6 +343,12 @@ impl SubtitleProvider for YifyProvider {
             .unwrap_or("subtitle.zip")
             .to_string();
 
-        extract_archive(&content, &archive_name, &request.language, &self.staging_root).await
+        extract_archive(
+            &content,
+            &archive_name,
+            &request.language,
+            &self.staging_root,
+        )
+        .await
     }
 }

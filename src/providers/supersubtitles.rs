@@ -2,7 +2,9 @@ use async_trait::async_trait;
 use serde::Deserialize;
 
 use super::SubtitleProvider;
-use crate::models::{DownloadedSubtitle, SubtitleDownloadRequest, SubtitleSearchRequest, SubtitleSearchResult};
+use crate::models::{
+    DownloadedSubtitle, SubtitleDownloadRequest, SubtitleSearchRequest, SubtitleSearchResult,
+};
 
 const SUPERSUBTITLES_BASE: &str = "https://www.feliratok.eu";
 const STAGING_ROOT: &str = "/tmp/subtitle-aggregator";
@@ -62,8 +64,14 @@ impl SubtitleProvider for SuperSubtitlesProvider {
         "supersubtitles"
     }
 
-    async fn search(&self, request: &SubtitleSearchRequest) -> Result<Vec<SubtitleSearchResult>, String> {
-        let query = request.query.as_deref().ok_or("supersubtitles: query is required")?;
+    async fn search(
+        &self,
+        request: &SubtitleSearchRequest,
+    ) -> Result<Vec<SubtitleSearchResult>, String> {
+        let query = request
+            .query
+            .as_deref()
+            .ok_or("supersubtitles: query is required")?;
 
         let client = reqwest::Client::builder()
             .user_agent("subtitle-aggregator/0.1")
@@ -75,14 +83,18 @@ impl SubtitleProvider for SuperSubtitlesProvider {
 
         if season > 0 {
             // Series search
-            self.search_series(&client, &series_name, season, episode).await
+            self.search_series(&client, &series_name, season, episode)
+                .await
         } else {
             // Movie search
             self.search_movie(&client, query).await
         }
     }
 
-    async fn download(&self, request: &SubtitleDownloadRequest) -> Result<DownloadedSubtitle, String> {
+    async fn download(
+        &self,
+        request: &SubtitleDownloadRequest,
+    ) -> Result<DownloadedSubtitle, String> {
         let url = request
             .download_path
             .as_deref()
@@ -100,7 +112,10 @@ impl SubtitleProvider for SuperSubtitlesProvider {
             .map_err(|e| format!("supersubtitles: download failed: {e}"))?;
 
         if !response.status().is_success() {
-            return Err(format!("supersubtitles: HTTP {}", response.status().as_u16()));
+            return Err(format!(
+                "supersubtitles: HTTP {}",
+                response.status().as_u16()
+            ));
         }
 
         let content = response
@@ -160,8 +175,9 @@ impl SuperSubtitlesProvider {
             .ok_or("supersubtitles: series not found")?;
 
         // Step 2: Get episode subtitles
-        let xbmc_url =
-            format!("{SUPERSUBTITLES_BASE}/index.php?action=xbmc&sid={series_id}&ev={season}&rtol={episode}");
+        let xbmc_url = format!(
+            "{SUPERSUBTITLES_BASE}/index.php?action=xbmc&sid={series_id}&ev={season}&rtol={episode}"
+        );
 
         let xbmc_resp = client
             .get(&xbmc_url)
@@ -170,7 +186,10 @@ impl SuperSubtitlesProvider {
             .map_err(|e| format!("supersubtitles xbmc request failed: {e}"))?;
 
         if !xbmc_resp.status().is_success() {
-            return Err(format!("supersubtitles xbmc HTTP {}", xbmc_resp.status().as_u16()));
+            return Err(format!(
+                "supersubtitles xbmc HTTP {}",
+                xbmc_resp.status().as_u16()
+            ));
         }
 
         let data: serde_json::Value = xbmc_resp
@@ -232,7 +251,11 @@ impl SuperSubtitlesProvider {
         Ok(results)
     }
 
-    async fn search_movie(&self, client: &reqwest::Client, title: &str) -> Result<Vec<SubtitleSearchResult>, String> {
+    async fn search_movie(
+        &self,
+        client: &reqwest::Client,
+        title: &str,
+    ) -> Result<Vec<SubtitleSearchResult>, String> {
         let url = format!(
             "{}/index.php?search={}&soriSorszam=&nyelv=&action=subtitle",
             SUPERSUBTITLES_BASE,
@@ -272,8 +295,13 @@ fn parse_series_query(query: &str) -> (String, u32, u32) {
         let after = &upper[s_pos + 2..];
         if let Some(e_pos) = after.find('E') {
             let season_str = &after[..e_pos];
-            let episode_str: String = after[e_pos + 1..].chars().take_while(char::is_ascii_digit).collect();
-            if let (Ok(season), Ok(episode)) = (season_str.parse::<u32>(), episode_str.parse::<u32>()) {
+            let episode_str: String = after[e_pos + 1..]
+                .chars()
+                .take_while(char::is_ascii_digit)
+                .collect();
+            if let (Ok(season), Ok(episode)) =
+                (season_str.parse::<u32>(), episode_str.parse::<u32>())
+            {
                 let series = query[..s_pos].trim().to_string();
                 return (series, season, episode);
             }

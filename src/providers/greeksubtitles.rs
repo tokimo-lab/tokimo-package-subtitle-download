@@ -12,8 +12,7 @@ use crate::models::{
 
 const GREEKSUBTITLES_BASE: &str = "http://gr.greek-subtitles.com/";
 const GREEKSUBTITLES_DL_BASE: &str = "http://www.greeksubtitles.info/getp.php?id=";
-const USER_AGENT: &str =
-    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
+const USER_AGENT: &str = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
 
 pub struct GreekSubtitlesProvider {
     staging_root: PathBuf,
@@ -58,8 +57,10 @@ async fn fetch_page(
 
     let document = Html::parse_document(&html);
 
-    let cell_sel = Selector::parse("td.latest_name > a").map_err(|e| format!("greeksubtitles selector error: {e}"))?;
-    let img_sel = Selector::parse("img").map_err(|e| format!("greeksubtitles selector error: {e}"))?;
+    let cell_sel = Selector::parse("td.latest_name > a")
+        .map_err(|e| format!("greeksubtitles selector error: {e}"))?;
+    let img_sel =
+        Selector::parse("img").map_err(|e| format!("greeksubtitles selector error: {e}"))?;
 
     for cell in document.select(&cell_sel) {
         let Some(href) = cell.value().attr("href") else {
@@ -83,7 +84,12 @@ async fn fetch_page(
             .and_then(|src| src.rsplit('/').next())
             .map_or_else(
                 || "el".to_string(),
-                |fname| fname.trim_end_matches(".png").trim_end_matches(".gif").to_lowercase(),
+                |fname| {
+                    fname
+                        .trim_end_matches(".png")
+                        .trim_end_matches(".gif")
+                        .to_lowercase()
+                },
             );
 
         if !matches_preferred_language(&lang_code, requested_languages) {
@@ -117,7 +123,10 @@ async fn fetch_page(
         let text = a.text().collect::<String>();
         let href = a.value().attr("href").unwrap_or("");
         if text.contains("Next") && href.contains("search.php") {
-            Some(format!("{GREEKSUBTITLES_BASE}{}", href.trim_start_matches('/')))
+            Some(format!(
+                "{GREEKSUBTITLES_BASE}{}",
+                href.trim_start_matches('/')
+            ))
         } else {
             None
         }
@@ -132,8 +141,14 @@ impl SubtitleProvider for GreekSubtitlesProvider {
         "greeksubtitles"
     }
 
-    async fn search(&self, request: &SubtitleSearchRequest) -> Result<Vec<SubtitleSearchResult>, String> {
-        let query = request.query.as_deref().ok_or("greeksubtitles requires query")?;
+    async fn search(
+        &self,
+        request: &SubtitleSearchRequest,
+    ) -> Result<Vec<SubtitleSearchResult>, String> {
+        let query = request
+            .query
+            .as_deref()
+            .ok_or("greeksubtitles requires query")?;
 
         let encoded = url::form_urlencoded::byte_serialize(query.as_bytes()).collect::<String>();
         let start_url = format!("{GREEKSUBTITLES_BASE}search.php?name={encoded}");
@@ -143,13 +158,17 @@ impl SubtitleProvider for GreekSubtitlesProvider {
         let mut current_url = Some(start_url);
 
         while let Some(url) = current_url {
-            current_url = fetch_page(&client, &url, request.languages.as_deref(), &mut results).await?;
+            current_url =
+                fetch_page(&client, &url, request.languages.as_deref(), &mut results).await?;
         }
 
         Ok(results)
     }
 
-    async fn download(&self, request: &SubtitleDownloadRequest) -> Result<DownloadedSubtitle, String> {
+    async fn download(
+        &self,
+        request: &SubtitleDownloadRequest,
+    ) -> Result<DownloadedSubtitle, String> {
         let download_url = request
             .download_path
             .as_deref()
@@ -171,6 +190,12 @@ impl SubtitleProvider for GreekSubtitlesProvider {
             .await
             .map_err(|e| format!("greeksubtitles read content error: {e}"))?;
 
-        extract_archive(&content, "subtitle.zip", &request.language, &self.staging_root).await
+        extract_archive(
+            &content,
+            "subtitle.zip",
+            &request.language,
+            &self.staging_root,
+        )
+        .await
     }
 }

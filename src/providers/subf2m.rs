@@ -6,12 +6,12 @@ use scraper::{Html, Selector};
 use super::SubtitleProvider;
 use crate::archive::extract_archive;
 use crate::models::{
-    DownloadedSubtitle, SubtitleDownloadRequest, SubtitleSearchRequest, SubtitleSearchResult, normalize_format,
+    DownloadedSubtitle, SubtitleDownloadRequest, SubtitleSearchRequest, SubtitleSearchResult,
+    normalize_format,
 };
 
 const BASE_URL: &str = "https://subf2m.co";
-const USER_AGENT: &str =
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36";
+const USER_AGENT: &str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36";
 
 /// Map from our language codes to subf2m URL path segments
 fn lang_to_subf2m_path(lang: &str) -> Option<&'static str> {
@@ -161,7 +161,11 @@ fn parse_subtitle_items(html: &str) -> Vec<(String, String)> {
         // Build release name from scrolllist entries
         let release_name: String = item
             .select(&scroll_sel)
-            .flat_map(|ul| ul.text().map(|t| t.trim().to_string()).filter(|t| !t.is_empty()))
+            .flat_map(|ul| {
+                ul.text()
+                    .map(|t| t.trim().to_string())
+                    .filter(|t| !t.is_empty())
+            })
             .collect::<Vec<_>>()
             .join(" / ");
 
@@ -177,7 +181,10 @@ impl SubtitleProvider for Subf2mProvider {
         "subf2m"
     }
 
-    async fn search(&self, request: &SubtitleSearchRequest) -> Result<Vec<SubtitleSearchResult>, String> {
+    async fn search(
+        &self,
+        request: &SubtitleSearchRequest,
+    ) -> Result<Vec<SubtitleSearchResult>, String> {
         let query = request.query.clone().unwrap_or_default();
         if query.trim().is_empty() {
             return Err("subf2m search requires a query".into());
@@ -198,7 +205,8 @@ impl SubtitleProvider for Subf2mProvider {
         };
 
         // Step 1: search for movie slugs
-        let encoded_query = url::form_urlencoded::byte_serialize(query.as_bytes()).collect::<String>();
+        let encoded_query =
+            url::form_urlencoded::byte_serialize(query.as_bytes()).collect::<String>();
         let search_url = format!("{BASE_URL}/subtitles/searchbytitle?query={encoded_query}&l=");
 
         let search_html = safe_get_text(&client, &search_url).await?;
@@ -227,7 +235,12 @@ impl SubtitleProvider for Subf2mProvider {
                 let items = parse_subtitle_items(&lang_html);
 
                 for (idx, (release_name, dl_href)) in items.iter().enumerate() {
-                    let id = format!("subf2m:{}:{}:{}", slug.trim_start_matches('/'), lang_path, idx);
+                    let id = format!(
+                        "subf2m:{}:{}:{}",
+                        slug.trim_start_matches('/'),
+                        lang_path,
+                        idx
+                    );
 
                     // Determine language name
                     let language_name = match lang_code {
@@ -242,7 +255,8 @@ impl SubtitleProvider for Subf2mProvider {
                     .to_string();
 
                     // Guess format from release name
-                    let format = normalize_format(release_name).unwrap_or_else(|| "srt".to_string());
+                    let format =
+                        normalize_format(release_name).unwrap_or_else(|| "srt".to_string());
 
                     let download_path = if dl_href.starts_with("http") {
                         dl_href.clone()
@@ -282,7 +296,10 @@ impl SubtitleProvider for Subf2mProvider {
         Ok(results)
     }
 
-    async fn download(&self, request: &SubtitleDownloadRequest) -> Result<DownloadedSubtitle, String> {
+    async fn download(
+        &self,
+        request: &SubtitleDownloadRequest,
+    ) -> Result<DownloadedSubtitle, String> {
         // Prefer download_path (direct ZIP link); fall back to detail_path which
         // requires extracting the real download button link
         let client = build_client()?;
@@ -293,7 +310,8 @@ impl SubtitleProvider for Subf2mProvider {
             // Fetch detail page and find the download button
             let detail_html = safe_get_text(&client, detail).await?;
             let document = Html::parse_document(&detail_html);
-            let sel = Selector::parse("a#downloadButton").map_err(|e| format!("selector parse error: {e}"))?;
+            let sel = Selector::parse("a#downloadButton")
+                .map_err(|e| format!("selector parse error: {e}"))?;
             let href = document
                 .select(&sel)
                 .next()

@@ -12,8 +12,7 @@ use crate::models::{
 };
 
 const SUBSCENTER_BASE: &str = "http://www.subscenter.info/he/";
-const USER_AGENT: &str =
-    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
+const USER_AGENT: &str = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
 
 pub struct SubsCenterProvider {
     staging_root: PathBuf,
@@ -51,8 +50,14 @@ impl SubtitleProvider for SubsCenterProvider {
         "subscenter"
     }
 
-    async fn search(&self, request: &SubtitleSearchRequest) -> Result<Vec<SubtitleSearchResult>, String> {
-        let query = request.query.as_deref().ok_or("subscenter requires query")?;
+    async fn search(
+        &self,
+        request: &SubtitleSearchRequest,
+    ) -> Result<Vec<SubtitleSearchResult>, String> {
+        let query = request
+            .query
+            .as_deref()
+            .ok_or("subscenter requires query")?;
 
         let encoded = url::form_urlencoded::byte_serialize(query.as_bytes()).collect::<String>();
         let search_url = format!("{SUBSCENTER_BASE}subtitle/search/?q={encoded}");
@@ -78,7 +83,10 @@ impl SubtitleProvider for SubsCenterProvider {
             if !resp.status().is_success() {
                 return Err(format!("subscenter search failed: {}", resp.status()));
             }
-            let html = resp.text().await.map_err(|e| format!("subscenter read error: {e}"))?;
+            let html = resp
+                .text()
+                .await
+                .map_err(|e| format!("subscenter read error: {e}"))?;
 
             let document = Html::parse_document(&html);
             let link_sel = Selector::parse("#processes div.generalWindowTop a")
@@ -118,7 +126,10 @@ impl SubtitleProvider for SubsCenterProvider {
             .map_err(|e| format!("subscenter data request failed: {e}"))?;
 
         if !data_resp.status().is_success() {
-            return Err(format!("subscenter data request failed: {}", data_resp.status()));
+            return Err(format!(
+                "subscenter data request failed: {}",
+                data_resp.status()
+            ));
         }
 
         let json_text = data_resp
@@ -126,8 +137,8 @@ impl SubtitleProvider for SubsCenterProvider {
             .await
             .map_err(|e| format!("subscenter read data error: {e}"))?;
 
-        let json: serde_json::Value =
-            serde_json::from_str(&json_text).map_err(|e| format!("subscenter JSON parse error: {e}"))?;
+        let json: serde_json::Value = serde_json::from_str(&json_text)
+            .map_err(|e| format!("subscenter JSON parse error: {e}"))?;
 
         let mut results = Vec::new();
 
@@ -144,10 +155,16 @@ impl SubtitleProvider for SubsCenterProvider {
                             for (_quality, subs) in qualities_obj {
                                 if let Some(subs_obj) = subs.as_object() {
                                     for (_sub_id_str, sub_info) in subs_obj {
-                                        let id = sub_info["id"].as_u64().map(|v| v.to_string()).unwrap_or_default();
-                                        let key = sub_info["key"].as_str().unwrap_or("").to_string();
-                                        let subtitle_version =
-                                            sub_info["subtitle_version"].as_str().unwrap_or("").to_string();
+                                        let id = sub_info["id"]
+                                            .as_u64()
+                                            .map(|v| v.to_string())
+                                            .unwrap_or_default();
+                                        let key =
+                                            sub_info["key"].as_str().unwrap_or("").to_string();
+                                        let subtitle_version = sub_info["subtitle_version"]
+                                            .as_str()
+                                            .unwrap_or("")
+                                            .to_string();
                                         let downloaded = sub_info["downloaded"].as_u64();
 
                                         if id.is_empty() {
@@ -182,7 +199,10 @@ impl SubtitleProvider for SubsCenterProvider {
         Ok(results)
     }
 
-    async fn download(&self, request: &SubtitleDownloadRequest) -> Result<DownloadedSubtitle, String> {
+    async fn download(
+        &self,
+        request: &SubtitleDownloadRequest,
+    ) -> Result<DownloadedSubtitle, String> {
         // Parse composite ID: subtitle_id:key:version
         let parts: Vec<&str> = request.subtitle_id.splitn(3, ':').collect();
         if parts.len() < 3 {
@@ -195,8 +215,9 @@ impl SubtitleProvider for SubsCenterProvider {
         let subtitle_key = parts[1];
         let subtitle_version = parts[2];
 
-        let download_url =
-            format!("{SUBSCENTER_BASE}subtitle/download/he/{subtitle_id}/?v={subtitle_version}&key={subtitle_key}");
+        let download_url = format!(
+            "{SUBSCENTER_BASE}subtitle/download/he/{subtitle_id}/?v={subtitle_version}&key={subtitle_key}"
+        );
 
         let client = reqwest::Client::builder()
             .user_agent(USER_AGENT)
@@ -219,7 +240,13 @@ impl SubtitleProvider for SubsCenterProvider {
             .await
             .map_err(|e| format!("subscenter read content error: {e}"))?;
 
-        extract_archive(&content, "subtitle.zip", &request.language, &self.staging_root).await
+        extract_archive(
+            &content,
+            "subtitle.zip",
+            &request.language,
+            &self.staging_root,
+        )
+        .await
     }
 }
 
@@ -241,6 +268,8 @@ fn parse_kind_and_title(path: &str) -> Result<(String, String), String> {
         let title = parts[parts.len() - 1].to_string();
         Ok((kind, title))
     } else {
-        Err(format!("subscenter: cannot parse kind/title from path: {path}"))
+        Err(format!(
+            "subscenter: cannot parse kind/title from path: {path}"
+        ))
     }
 }

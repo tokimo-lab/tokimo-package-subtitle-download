@@ -4,11 +4,12 @@ use std::path::PathBuf;
 
 use super::SubtitleProvider;
 use crate::archive::extract_archive;
-use crate::models::{DownloadedSubtitle, SubtitleDownloadRequest, SubtitleSearchRequest, SubtitleSearchResult};
+use crate::models::{
+    DownloadedSubtitle, SubtitleDownloadRequest, SubtitleSearchRequest, SubtitleSearchResult,
+};
 
 const TURKCEALTYAZI_BASE_URL: &str = "https://turkcealtyazi.org";
-const TURKCEALTYAZI_USER_AGENT: &str =
-    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
+const TURKCEALTYAZI_USER_AGENT: &str = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
 
 pub struct TurkcealtyaziProvider {
     staging_root: PathBuf,
@@ -59,7 +60,10 @@ impl SubtitleProvider for TurkcealtyaziProvider {
         "turkcealtyazi"
     }
 
-    async fn search(&self, request: &SubtitleSearchRequest) -> Result<Vec<SubtitleSearchResult>, String> {
+    async fn search(
+        &self,
+        request: &SubtitleSearchRequest,
+    ) -> Result<Vec<SubtitleSearchResult>, String> {
         let imdb_id = request
             .imdb_id
             .as_deref()
@@ -95,7 +99,11 @@ impl SubtitleProvider for TurkcealtyaziProvider {
         // Check for 404 in meta description
         if let Ok(meta_sel) = Selector::parse("meta[name='description']")
             && let Some(meta) = document.select(&meta_sel).next()
-            && meta.value().attr("content").unwrap_or_default().contains("404 Error")
+            && meta
+                .value()
+                .attr("content")
+                .unwrap_or_default()
+                .contains("404 Error")
         {
             return Ok(Vec::new());
         }
@@ -130,8 +138,8 @@ impl SubtitleProvider for TurkcealtyaziProvider {
                 };
 
                 // Language
-                let lang_class_sel =
-                    Selector::parse("div.aldil > span").map_err(|e| format!("TurkceAltyazi selector error: {e}"))?;
+                let lang_class_sel = Selector::parse("div.aldil > span")
+                    .map_err(|e| format!("TurkceAltyazi selector error: {e}"))?;
                 let language = entry
                     .select(&lang_class_sel)
                     .next()
@@ -154,8 +162,8 @@ impl SubtitleProvider for TurkcealtyaziProvider {
                     .unwrap_or_default();
 
                 // Uploader
-                let uploader_sel =
-                    Selector::parse("div.alcevirmen").map_err(|e| format!("TurkceAltyazi selector error: {e}"))?;
+                let uploader_sel = Selector::parse("div.alcevirmen")
+                    .map_err(|e| format!("TurkceAltyazi selector error: {e}"))?;
                 let uploader = entry
                     .select(&uploader_sel)
                     .next()
@@ -164,7 +172,11 @@ impl SubtitleProvider for TurkcealtyaziProvider {
 
                 let id = page_link.clone();
                 let name = if release_info.is_empty() {
-                    page_link.rsplit('/').next().unwrap_or("subtitle").to_string()
+                    page_link
+                        .rsplit('/')
+                        .next()
+                        .unwrap_or("subtitle")
+                        .to_string()
                 } else {
                     release_info.clone()
                 };
@@ -189,7 +201,10 @@ impl SubtitleProvider for TurkcealtyaziProvider {
         Ok(results)
     }
 
-    async fn download(&self, request: &SubtitleDownloadRequest) -> Result<DownloadedSubtitle, String> {
+    async fn download(
+        &self,
+        request: &SubtitleDownloadRequest,
+    ) -> Result<DownloadedSubtitle, String> {
         let detail_url = request
             .detail_path
             .as_deref()
@@ -250,6 +265,12 @@ impl SubtitleProvider for TurkcealtyaziProvider {
             .await
             .map_err(|e| format!("Failed to read TurkceAltyazi download: {e}"))?;
 
-        extract_archive(&content, "subtitle.zip", &request.language, &self.staging_root).await
+        extract_archive(
+            &content,
+            "subtitle.zip",
+            &request.language,
+            &self.staging_root,
+        )
+        .await
     }
 }

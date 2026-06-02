@@ -13,8 +13,7 @@ use crate::models::{
 const WIZDOM_BASE: &str = "http://wizdom.xyz";
 const WIZDOM_API_BASE: &str = "https://wizdom.xyz/api";
 const TMDB_API_KEY: &str = "a51ee051bcd762543373903de296e0a3";
-const USER_AGENT: &str =
-    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
+const USER_AGENT: &str = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
 
 pub struct WizdomProvider {
     staging_root: PathBuf,
@@ -45,10 +44,16 @@ fn parse_season_episode(query: &str) -> Option<(u32, u32)> {
     })
 }
 
-async fn get_imdb_id_from_tmdb(client: &reqwest::Client, title: &str, is_tv: bool) -> Result<String, String> {
+async fn get_imdb_id_from_tmdb(
+    client: &reqwest::Client,
+    title: &str,
+    is_tv: bool,
+) -> Result<String, String> {
     let kind = if is_tv { "tv" } else { "movie" };
     let encoded = url::form_urlencoded::byte_serialize(title.as_bytes()).collect::<String>();
-    let search_url = format!("http://api.tmdb.org/3/search/{kind}?api_key={TMDB_API_KEY}&query={encoded}&language=en");
+    let search_url = format!(
+        "http://api.tmdb.org/3/search/{kind}?api_key={TMDB_API_KEY}&query={encoded}&language=en"
+    );
 
     let resp = client
         .get(&search_url)
@@ -85,7 +90,10 @@ async fn get_imdb_id_from_tmdb(client: &reqwest::Client, title: &str, is_tv: boo
         .map_err(|e| format!("wizdom TMDB external_ids failed: {e}"))?;
 
     if !ext_resp.status().is_success() {
-        return Err(format!("wizdom TMDB external_ids failed: {}", ext_resp.status()));
+        return Err(format!(
+            "wizdom TMDB external_ids failed: {}",
+            ext_resp.status()
+        ));
     }
 
     let ext_json: serde_json::Value = ext_resp
@@ -107,7 +115,10 @@ impl SubtitleProvider for WizdomProvider {
         "wizdom"
     }
 
-    async fn search(&self, request: &SubtitleSearchRequest) -> Result<Vec<SubtitleSearchResult>, String> {
+    async fn search(
+        &self,
+        request: &SubtitleSearchRequest,
+    ) -> Result<Vec<SubtitleSearchResult>, String> {
         if !matches_preferred_language("he", request.languages.as_deref()) {
             return Ok(Vec::new());
         }
@@ -117,7 +128,10 @@ impl SubtitleProvider for WizdomProvider {
         let imdb_id = if let Some(id) = &request.imdb_id {
             id.clone()
         } else {
-            let query = request.query.as_deref().ok_or("wizdom requires imdb_id or query")?;
+            let query = request
+                .query
+                .as_deref()
+                .ok_or("wizdom requires imdb_id or query")?;
 
             let se_opt = parse_season_episode(query);
             let is_tv = se_opt.is_some();
@@ -222,7 +236,10 @@ impl SubtitleProvider for WizdomProvider {
         Ok(results)
     }
 
-    async fn download(&self, request: &SubtitleDownloadRequest) -> Result<DownloadedSubtitle, String> {
+    async fn download(
+        &self,
+        request: &SubtitleDownloadRequest,
+    ) -> Result<DownloadedSubtitle, String> {
         let download_url = request
             .download_path
             .as_deref()
@@ -245,6 +262,12 @@ impl SubtitleProvider for WizdomProvider {
             .await
             .map_err(|e| format!("wizdom read content error: {e}"))?;
 
-        extract_archive(&content, "subtitle.zip", &request.language, &self.staging_root).await
+        extract_archive(
+            &content,
+            "subtitle.zip",
+            &request.language,
+            &self.staging_root,
+        )
+        .await
     }
 }

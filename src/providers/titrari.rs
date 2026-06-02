@@ -8,7 +8,8 @@ use scraper::{Html, Selector};
 use super::SubtitleProvider;
 use crate::archive::extract_archive;
 use crate::models::{
-    DownloadedSubtitle, SubtitleDownloadRequest, SubtitleSearchRequest, SubtitleSearchResult, normalize_format,
+    DownloadedSubtitle, SubtitleDownloadRequest, SubtitleSearchRequest, SubtitleSearchResult,
+    normalize_format,
 };
 
 const BASE_URL: &str = "https://www.titrari.ro/";
@@ -42,7 +43,10 @@ impl SubtitleProvider for TitrariProvider {
         "titrari"
     }
 
-    async fn search(&self, request: &SubtitleSearchRequest) -> Result<Vec<SubtitleSearchResult>, String> {
+    async fn search(
+        &self,
+        request: &SubtitleSearchRequest,
+    ) -> Result<Vec<SubtitleSearchResult>, String> {
         let client = build_client()?;
 
         let query = request.query.clone().unwrap_or_default();
@@ -89,7 +93,10 @@ impl SubtitleProvider for TitrariProvider {
             .map_err(|e| format!("Titrari: search request failed: {e}"))?;
 
         if !resp.status().is_success() {
-            return Err(format!("Titrari: search failed with HTTP {}", resp.status().as_u16()));
+            return Err(format!(
+                "Titrari: search failed with HTTP {}",
+                resp.status().as_u16()
+            ));
         }
 
         let html = resp
@@ -100,7 +107,10 @@ impl SubtitleProvider for TitrariProvider {
         parse_titrari_results(&html, &query)
     }
 
-    async fn download(&self, request: &SubtitleDownloadRequest) -> Result<DownloadedSubtitle, String> {
+    async fn download(
+        &self,
+        request: &SubtitleDownloadRequest,
+    ) -> Result<DownloadedSubtitle, String> {
         let url = request
             .download_path
             .as_deref()
@@ -116,7 +126,10 @@ impl SubtitleProvider for TitrariProvider {
             .map_err(|e| format!("Titrari: download request failed: {e}"))?;
 
         if !resp.status().is_success() {
-            return Err(format!("Titrari: download failed with HTTP {}", resp.status().as_u16()));
+            return Err(format!(
+                "Titrari: download failed with HTTP {}",
+                resp.status().as_u16()
+            ));
         }
 
         let file_name = resp
@@ -124,7 +137,8 @@ impl SubtitleProvider for TitrariProvider {
             .get("content-disposition")
             .and_then(|v| v.to_str().ok())
             .and_then(|v| {
-                let re = regex::Regex::new(r#"filename[^;=\n]*=(?:'([^']*)'|"([^"]*)"|([^;\n]*))"#).ok()?;
+                let re = regex::Regex::new(r#"filename[^;=\n]*=(?:'([^']*)'|"([^"]*)"|([^;\n]*))"#)
+                    .ok()?;
                 re.captures(v)
                     .and_then(|c| c.get(1).or_else(|| c.get(2)).or_else(|| c.get(3)))
                     .map(|m| m.as_str().trim().to_string())
@@ -153,14 +167,18 @@ fn parse_titrari_results(html: &str, query: &str) -> Result<Vec<SubtitleSearchRe
     let mut results = Vec::new();
 
     // Each subtitle is in a td[rowspan="5"] cell
-    let row_sel = Selector::parse(r#"td[rowspan="5"]"#).map_err(|e| format!("Titrari: selector parse error: {e}"))?;
-    let _title_sel = Selector::parse("h1 a").map_err(|e| format!("Titrari: selector parse error: {e}"))?;
-    let comment_sel = Selector::parse(".comment").map_err(|e| format!("Titrari: selector parse error: {e}"))?;
+    let row_sel = Selector::parse(r#"td[rowspan="5"]"#)
+        .map_err(|e| format!("Titrari: selector parse error: {e}"))?;
+    let _title_sel =
+        Selector::parse("h1 a").map_err(|e| format!("Titrari: selector parse error: {e}"))?;
+    let comment_sel =
+        Selector::parse(".comment").map_err(|e| format!("Titrari: selector parse error: {e}"))?;
 
     let year_re = Regex::new(r"\((\d{4})\)").map_err(|e| format!("Titrari: regex error: {e}"))?;
     let imdb_re = Regex::new(r"tt(\d+)").map_err(|e| format!("Titrari: regex error: {e}"))?;
     let a_sel = Selector::parse("a").map_err(|e| format!("Titrari: selector parse error: {e}"))?;
-    let h1_a_sel = Selector::parse("h1 a").map_err(|e| format!("Titrari: selector parse error: {e}"))?;
+    let h1_a_sel =
+        Selector::parse("h1 a").map_err(|e| format!("Titrari: selector parse error: {e}"))?;
 
     for (index, row) in document.select(&row_sel).enumerate() {
         // The first <a> in the row is the download link
@@ -191,7 +209,12 @@ fn parse_titrari_results(html: &str, query: &str) -> Result<Vec<SubtitleSearchRe
                 .unwrap_or_default()
         };
 
-        let title = full_title.split('(').next().unwrap_or(&full_title).trim().to_string();
+        let title = full_title
+            .split('(')
+            .next()
+            .unwrap_or(&full_title)
+            .trim()
+            .to_string();
 
         if title.is_empty() {
             continue;
@@ -232,7 +255,11 @@ fn parse_titrari_results(html: &str, query: &str) -> Result<Vec<SubtitleSearchRe
             download_path: Some(download_url),
             download_count: None,
             rating: None,
-            movie_name: Some(if query.is_empty() { title } else { query.to_string() }),
+            movie_name: Some(if query.is_empty() {
+                title
+            } else {
+                query.to_string()
+            }),
             release_group: if comments.is_empty() {
                 None
             } else {

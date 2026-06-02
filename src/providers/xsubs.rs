@@ -10,8 +10,7 @@ use crate::models::{
 };
 
 const XSUBS_BASE: &str = "http://xsubs.tv";
-const USER_AGENT: &str =
-    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
+const USER_AGENT: &str = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
 
 pub struct XSubsProvider {
     #[allow(dead_code)]
@@ -27,7 +26,9 @@ impl XSubsProvider {
 }
 
 fn build_client() -> Result<reqwest::Client, String> {
-    let builder = reqwest::Client::builder().user_agent(USER_AGENT).cookie_store(true);
+    let builder = reqwest::Client::builder()
+        .user_agent(USER_AGENT)
+        .cookie_store(true);
 
     // Optional basic auth via env vars
     if let (Ok(user), Ok(pass)) = (std::env::var("XSUBS_USER"), std::env::var("XSUBS_PASS")) {
@@ -71,7 +72,9 @@ async fn fetch_text(client: &reqwest::Client, url: &str) -> Result<String, Strin
         return Err(format!("xsubs request failed: {} for {url}", resp.status()));
     }
 
-    resp.text().await.map_err(|e| format!("xsubs read error: {e}"))
+    resp.text()
+        .await
+        .map_err(|e| format!("xsubs read error: {e}"))
 }
 
 #[async_trait]
@@ -80,11 +83,14 @@ impl SubtitleProvider for XSubsProvider {
         "xsubs"
     }
 
-    async fn search(&self, request: &SubtitleSearchRequest) -> Result<Vec<SubtitleSearchResult>, String> {
+    async fn search(
+        &self,
+        request: &SubtitleSearchRequest,
+    ) -> Result<Vec<SubtitleSearchResult>, String> {
         let query = request.query.as_deref().ok_or("xsubs requires query")?;
 
-        let (season, episode) =
-            parse_season_episode(query).ok_or("xsubs: query must contain season/episode pattern (e.g. S01E02)")?;
+        let (season, episode) = parse_season_episode(query)
+            .ok_or("xsubs: query must contain season/episode pattern (e.g. S01E02)")?;
 
         let title_re = Regex::new(r"\s*[Ss]\d+[Ee]\d+.*").unwrap();
         let show_title = title_re.replace(query, "").trim().to_string();
@@ -117,7 +123,8 @@ impl SubtitleProvider for XSubsProvider {
         let main_xml = fetch_text(&client, &main_url).await?;
 
         // Parse <series_group ssnnum="1" ssnid="456"/>
-        let season_re = Regex::new(r#"<series_group\s+ssnnum="(\d+)"\s+ssnid="(\d+)"[^/]*/>"#).unwrap();
+        let season_re =
+            Regex::new(r#"<series_group\s+ssnnum="(\d+)"\s+ssnid="(\d+)"[^/]*/>"#).unwrap();
 
         let season_id = season_re
             .captures_iter(&main_xml)
@@ -158,9 +165,10 @@ impl SubtitleProvider for XSubsProvider {
                 .unwrap_or(0);
 
             // Check sgt for episode match
-            let matches_episode = sgt_re
-                .captures_iter(block)
-                .any(|c| c[1].parse::<u32>().unwrap_or(0) == season && c[2].parse::<u32>().unwrap_or(0) == episode);
+            let matches_episode = sgt_re.captures_iter(block).any(|c| {
+                c[1].parse::<u32>().unwrap_or(0) == season
+                    && c[2].parse::<u32>().unwrap_or(0) == episode
+            });
 
             if !matches_episode && ep_num != episode {
                 continue;
@@ -206,7 +214,10 @@ impl SubtitleProvider for XSubsProvider {
         Ok(results)
     }
 
-    async fn download(&self, request: &SubtitleDownloadRequest) -> Result<DownloadedSubtitle, String> {
+    async fn download(
+        &self,
+        request: &SubtitleDownloadRequest,
+    ) -> Result<DownloadedSubtitle, String> {
         let download_url = request
             .download_path
             .as_deref()
@@ -229,7 +240,10 @@ impl SubtitleProvider for XSubsProvider {
             .await
             .map_err(|e| format!("xsubs read content error: {e}"))?;
 
-        let name = request.name.clone().unwrap_or_else(|| "subtitle.srt".to_string());
+        let name = request
+            .name
+            .clone()
+            .unwrap_or_else(|| "subtitle.srt".to_string());
 
         Ok(DownloadedSubtitle {
             name,

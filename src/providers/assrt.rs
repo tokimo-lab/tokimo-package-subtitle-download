@@ -13,8 +13,7 @@ use scraper::{Html, Selector};
 use tokio::{fs, process::Command};
 
 const ASSRT_BASE_URL: &str = "https://assrt.net";
-const ASSRT_USER_AGENT: &str =
-    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
+const ASSRT_USER_AGENT: &str = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
 
 #[derive(Debug, Clone)]
 struct DetailSubtitleFile {
@@ -100,7 +99,10 @@ async fn fetch_assrt_html(url: &str) -> Result<String, String> {
         .map_err(|error| format!("读取 assrt 响应失败: {error}"))
 }
 
-fn parse_detail_download_files(detail_html: &str, _subtitle_id: &str) -> Result<Vec<DetailSubtitleFile>, String> {
+fn parse_detail_download_files(
+    detail_html: &str,
+    _subtitle_id: &str,
+) -> Result<Vec<DetailSubtitleFile>, String> {
     let onthefly_regex = Regex::new(r#"onthefly\("(\d+)","(\d+)","([^"]+)"\)"#)
         .map_err(|error| format!("detail file regex failed: {error}"))?;
     let mut files = Vec::new();
@@ -112,15 +114,18 @@ fn parse_detail_download_files(detail_html: &str, _subtitle_id: &str) -> Result<
         let Some(index) = captures.get(2).map(|value| value.as_str()) else {
             continue;
         };
-        let Some(name) = captures.get(3).map(|value| value.as_str().trim().to_string()) else {
+        let Some(name) = captures
+            .get(3)
+            .map(|value| value.as_str().trim().to_string())
+        else {
             continue;
         };
         let Some(format) = normalize_format(&name) else {
             continue;
         };
         let url = {
-            let mut download_url =
-                url::Url::parse(ASSRT_BASE_URL).map_err(|error| format!("解析 assrt 下载基础地址失败: {error}"))?;
+            let mut download_url = url::Url::parse(ASSRT_BASE_URL)
+                .map_err(|error| format!("解析 assrt 下载基础地址失败: {error}"))?;
             download_url
                 .path_segments_mut()
                 .map_err(|()| "构造 assrt 下载地址失败".to_string())?
@@ -177,7 +182,10 @@ async fn warm_assrt_session(cookie_jar: &Path) -> Result<(), String> {
     Ok(())
 }
 
-async fn fetch_assrt_detail_html_via_curl(detail_url: &str, cookie_jar: &Path) -> Result<String, String> {
+async fn fetch_assrt_detail_html_via_curl(
+    detail_url: &str,
+    cookie_jar: &Path,
+) -> Result<String, String> {
     let cookie_jar_str = cookie_jar.to_string_lossy().to_string();
     let accept_html = "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8";
     let detail_output = Command::new("curl")
@@ -204,7 +212,8 @@ async fn fetch_assrt_detail_html_via_curl(detail_url: &str, cookie_jar: &Path) -
         ));
     }
 
-    String::from_utf8(detail_output.stdout).map_err(|error| format!("解码 assrt 详情页失败: {error}"))
+    String::from_utf8(detail_output.stdout)
+        .map_err(|error| format!("解码 assrt 详情页失败: {error}"))
 }
 
 async fn download_detail_subtitle_via_curl(
@@ -323,7 +332,10 @@ async fn download_archive_subtitle(
         .bytes()
         .await
         .map_err(|error| format!("读取 assrt 下载内容失败: {error}"))?;
-    let subtitle_name = request.name.clone().unwrap_or_else(|| archive_file_name.clone());
+    let subtitle_name = request
+        .name
+        .clone()
+        .unwrap_or_else(|| archive_file_name.clone());
 
     if let Some(format) = normalize_format(&archive_file_name) {
         return Ok(DownloadedSubtitle {
@@ -333,7 +345,13 @@ async fn download_archive_subtitle(
         });
     }
 
-    extract_archive(&content, &archive_file_name, &request.language, staging_root).await
+    extract_archive(
+        &content,
+        &archive_file_name,
+        &request.language,
+        staging_root,
+    )
+    .await
 }
 
 #[async_trait]
@@ -342,7 +360,10 @@ impl SubtitleProvider for AssrtProvider {
         "assrt"
     }
 
-    async fn search(&self, request: &SubtitleSearchRequest) -> Result<Vec<SubtitleSearchResult>, String> {
+    async fn search(
+        &self,
+        request: &SubtitleSearchRequest,
+    ) -> Result<Vec<SubtitleSearchResult>, String> {
         let query = request.query.clone().unwrap_or_default().trim().to_string();
         if query.is_empty() {
             return Err("请输入片名或文件名后再搜索 assrt 字幕".into());
@@ -354,23 +375,24 @@ impl SubtitleProvider for AssrtProvider {
         );
         let html = fetch_assrt_html(&search_url).await?;
         let document = Html::parse_document(&html);
-        let row_selector =
-            Selector::parse(".resultcard .subitem").map_err(|error| format!("解析 assrt 搜索选择器失败: {error}"))?;
-        let title_selector =
-            Selector::parse(".introtitle").map_err(|error| format!("解析 assrt 标题选择器失败: {error}"))?;
-        let meta_span_selector =
-            Selector::parse("#sublist_div span").map_err(|error| format!("解析 assrt 元数据选择器失败: {error}"))?;
-        let version_selector =
-            Selector::parse("#meta_top b").map_err(|error| format!("解析 assrt 版本选择器失败: {error}"))?;
+        let row_selector = Selector::parse(".resultcard .subitem")
+            .map_err(|error| format!("解析 assrt 搜索选择器失败: {error}"))?;
+        let title_selector = Selector::parse(".introtitle")
+            .map_err(|error| format!("解析 assrt 标题选择器失败: {error}"))?;
+        let meta_span_selector = Selector::parse("#sublist_div span")
+            .map_err(|error| format!("解析 assrt 元数据选择器失败: {error}"))?;
+        let version_selector = Selector::parse("#meta_top b")
+            .map_err(|error| format!("解析 assrt 版本选择器失败: {error}"))?;
         let rating_selector = Selector::parse(r#"img[alt*="用户评分"], img[title*="用户评分"]"#)
             .map_err(|error| format!("解析 assrt 评分选择器失败: {error}"))?;
-        let detail_id_regex =
-            Regex::new(r"/(\d+)\.xml$").map_err(|error| format!("detail id regex failed: {error}"))?;
-        let download_regex =
-            Regex::new(r"location\.href='([^']+)'").map_err(|error| format!("download path regex failed: {error}"))?;
-        let number_regex = Regex::new(r"([\d.]+)").map_err(|error| format!("number regex failed: {error}"))?;
-        let download_count_regex =
-            Regex::new(r"下载次数：\s*(\d+)").map_err(|error| format!("download count regex failed: {error}"))?;
+        let detail_id_regex = Regex::new(r"/(\d+)\.xml$")
+            .map_err(|error| format!("detail id regex failed: {error}"))?;
+        let download_regex = Regex::new(r"location\.href='([^']+)'")
+            .map_err(|error| format!("download path regex failed: {error}"))?;
+        let number_regex =
+            Regex::new(r"([\d.]+)").map_err(|error| format!("number regex failed: {error}"))?;
+        let download_count_regex = Regex::new(r"下载次数：\s*(\d+)")
+            .map_err(|error| format!("download count regex failed: {error}"))?;
 
         let mut results = Vec::new();
 
@@ -389,7 +411,10 @@ impl SubtitleProvider for AssrtProvider {
                 continue;
             };
 
-            let span_texts = row.select(&meta_span_selector).map(text_content).collect::<Vec<_>>();
+            let span_texts = row
+                .select(&meta_span_selector)
+                .map(text_content)
+                .collect::<Vec<_>>();
             let format_text = span_texts
                 .iter()
                 .find_map(|text| text.strip_prefix("格式："))
@@ -424,9 +449,9 @@ impl SubtitleProvider for AssrtProvider {
                         .map(str::to_string)
                 })
                 .and_then(|text| {
-                    number_regex
-                        .captures(&text)
-                        .and_then(|captures| captures.get(1).map(|value| value.as_str().to_string()))
+                    number_regex.captures(&text).and_then(|captures| {
+                        captures.get(1).map(|value| value.as_str().to_string())
+                    })
                 })
                 .and_then(|value| value.parse::<f64>().ok());
             let download_path = download_regex
@@ -471,7 +496,10 @@ impl SubtitleProvider for AssrtProvider {
         Ok(results)
     }
 
-    async fn download(&self, request: &SubtitleDownloadRequest) -> Result<DownloadedSubtitle, String> {
+    async fn download(
+        &self,
+        request: &SubtitleDownloadRequest,
+    ) -> Result<DownloadedSubtitle, String> {
         if let Some(detail_path) = request.detail_path.as_deref() {
             match download_detail_subtitle_via_curl(
                 detail_path,

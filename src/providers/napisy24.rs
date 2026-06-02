@@ -2,7 +2,9 @@ use async_trait::async_trait;
 use base64::{Engine as _, engine::general_purpose};
 
 use super::SubtitleProvider;
-use crate::models::{DownloadedSubtitle, SubtitleDownloadRequest, SubtitleSearchRequest, SubtitleSearchResult};
+use crate::models::{
+    DownloadedSubtitle, SubtitleDownloadRequest, SubtitleSearchRequest, SubtitleSearchResult,
+};
 
 const NAPISY24_API: &str = "http://napisy24.pl/run/CheckSubAgent.php";
 const STAGING_ROOT: &str = "/tmp/subtitle-aggregator";
@@ -32,10 +34,19 @@ impl SubtitleProvider for Napisy24Provider {
         "napisy24"
     }
 
-    async fn search(&self, request: &SubtitleSearchRequest) -> Result<Vec<SubtitleSearchResult>, String> {
-        let file_hash = request.file_hash.as_deref().ok_or("napisy24: file_hash is required")?;
+    async fn search(
+        &self,
+        request: &SubtitleSearchRequest,
+    ) -> Result<Vec<SubtitleSearchResult>, String> {
+        let file_hash = request
+            .file_hash
+            .as_deref()
+            .ok_or("napisy24: file_hash is required")?;
         let file_size = request.file_size.ok_or("napisy24: file_size is required")?;
-        let filename = request.query.clone().unwrap_or_else(|| "video.mkv".to_string());
+        let filename = request
+            .query
+            .clone()
+            .unwrap_or_else(|| "video.mkv".to_string());
 
         let client = reqwest::Client::builder()
             .user_agent("subtitle-aggregator/0.1")
@@ -124,7 +135,11 @@ impl SubtitleProvider for Napisy24Provider {
             language_name: "Polish".into(),
             format: "srt".into(),
             provider: "napisy24".into(),
-            detail_path: if imdb_id.is_empty() { None } else { Some(imdb_id) },
+            detail_path: if imdb_id.is_empty() {
+                None
+            } else {
+                Some(imdb_id)
+            },
             download_path: Some(zip_b64),
             download_count: None,
             rating: None,
@@ -135,7 +150,10 @@ impl SubtitleProvider for Napisy24Provider {
         Ok(vec![result])
     }
 
-    async fn download(&self, request: &SubtitleDownloadRequest) -> Result<DownloadedSubtitle, String> {
+    async fn download(
+        &self,
+        request: &SubtitleDownloadRequest,
+    ) -> Result<DownloadedSubtitle, String> {
         let zip_b64 = request
             .download_path
             .as_deref()
@@ -151,6 +169,12 @@ impl SubtitleProvider for Napisy24Provider {
             .unwrap_or_else(|| format!("napisy24_{}.srt", request.subtitle_id));
 
         let staging = std::path::Path::new(STAGING_ROOT);
-        crate::archive::extract_archive(&zip_bytes, &format!("{name}.zip"), &request.language, staging).await
+        crate::archive::extract_archive(
+            &zip_bytes,
+            &format!("{name}.zip"),
+            &request.language,
+            staging,
+        )
+        .await
     }
 }

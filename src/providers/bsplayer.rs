@@ -1,7 +1,9 @@
 use async_trait::async_trait;
 
 use super::SubtitleProvider;
-use crate::models::{DownloadedSubtitle, SubtitleDownloadRequest, SubtitleSearchRequest, SubtitleSearchResult};
+use crate::models::{
+    DownloadedSubtitle, SubtitleDownloadRequest, SubtitleSearchRequest, SubtitleSearchResult,
+};
 
 const BSPLAYER_API_URL: &str = "http://api.bsplayer-subtitles.com/v1.php";
 const BSPLAYER_USER_AGENT: &str = "BSPlayer/2.x (1022.12360)";
@@ -36,7 +38,11 @@ impl BsPlayerProvider {
         )
     }
 
-    async fn api_request(client: &reqwest::Client, func_name: &str, params: &str) -> Result<String, String> {
+    async fn api_request(
+        client: &reqwest::Client,
+        func_name: &str,
+        params: &str,
+    ) -> Result<String, String> {
         let envelope = Self::build_soap_envelope(BSPLAYER_API_URL, func_name, params);
         let soap_action = format!("\"http://api.bsplayer-subtitles.com/v1.php#{func_name}\"");
 
@@ -51,7 +57,10 @@ impl BsPlayerProvider {
             .map_err(|e| format!("BSPlayer API request failed: {e}"))?;
 
         if !response.status().is_success() {
-            return Err(format!("BSPlayer API returned HTTP {}", response.status().as_u16()));
+            return Err(format!(
+                "BSPlayer API returned HTTP {}",
+                response.status().as_u16()
+            ));
         }
 
         response
@@ -126,12 +135,17 @@ impl SubtitleProvider for BsPlayerProvider {
         "bsplayer"
     }
 
-    async fn search(&self, request: &SubtitleSearchRequest) -> Result<Vec<SubtitleSearchResult>, String> {
+    async fn search(
+        &self,
+        request: &SubtitleSearchRequest,
+    ) -> Result<Vec<SubtitleSearchResult>, String> {
         let file_hash = request
             .file_hash
             .as_deref()
             .ok_or("BSPlayer search requires file_hash")?;
-        let file_size = request.file_size.ok_or("BSPlayer search requires file_size")?;
+        let file_size = request
+            .file_size
+            .ok_or("BSPlayer search requires file_size")?;
 
         let imdb_id = request.imdb_id.as_deref().unwrap_or("*");
         let language_ids = request.languages.as_deref().map_or_else(
@@ -193,11 +207,13 @@ impl SubtitleProvider for BsPlayerProvider {
             if let Some(end) = xml[abs_start..].find(item_close) {
                 let item_xml = &xml[abs_start..abs_start + end];
 
-                let sub_id = Self::extract_xml_text(item_xml, "subID").unwrap_or_else(|| format!("bsplayer-{index}"));
-                let download_link = Self::extract_xml_text(item_xml, "subDownloadLink").unwrap_or_default();
+                let sub_id = Self::extract_xml_text(item_xml, "subID")
+                    .unwrap_or_else(|| format!("bsplayer-{index}"));
+                let download_link =
+                    Self::extract_xml_text(item_xml, "subDownloadLink").unwrap_or_default();
                 let sub_lang = Self::extract_xml_text(item_xml, "subLang").unwrap_or_default();
-                let sub_name =
-                    Self::extract_xml_text(item_xml, "subName").unwrap_or_else(|| format!("subtitle_{index}"));
+                let sub_name = Self::extract_xml_text(item_xml, "subName")
+                    .unwrap_or_else(|| format!("subtitle_{index}"));
                 let sub_format = Self::extract_xml_text(item_xml, "subFormat")
                     .unwrap_or_else(|| "srt".to_string())
                     .to_ascii_lowercase();
@@ -231,7 +247,10 @@ impl SubtitleProvider for BsPlayerProvider {
         Ok(results)
     }
 
-    async fn download(&self, request: &SubtitleDownloadRequest) -> Result<DownloadedSubtitle, String> {
+    async fn download(
+        &self,
+        request: &SubtitleDownloadRequest,
+    ) -> Result<DownloadedSubtitle, String> {
         let download_url = request
             .download_path
             .as_deref()
@@ -249,7 +268,10 @@ impl SubtitleProvider for BsPlayerProvider {
             .map_err(|e| format!("BSPlayer download failed: {e}"))?;
 
         if !response.status().is_success() {
-            return Err(format!("BSPlayer download failed: HTTP {}", response.status().as_u16()));
+            return Err(format!(
+                "BSPlayer download failed: HTTP {}",
+                response.status().as_u16()
+            ));
         }
 
         let content = response
@@ -261,7 +283,10 @@ impl SubtitleProvider for BsPlayerProvider {
         let decompressed = Self::decompress_gzip(&content).unwrap_or_else(|_| content.to_vec());
 
         let format = request.format.clone();
-        let name = request.name.clone().unwrap_or_else(|| format!("subtitle.{format}"));
+        let name = request
+            .name
+            .clone()
+            .unwrap_or_else(|| format!("subtitle.{format}"));
 
         Ok(DownloadedSubtitle {
             name,

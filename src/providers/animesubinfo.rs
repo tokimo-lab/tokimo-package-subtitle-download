@@ -4,12 +4,13 @@ use std::path::PathBuf;
 
 use super::SubtitleProvider;
 use crate::archive::extract_archive;
-use crate::models::{DownloadedSubtitle, SubtitleDownloadRequest, SubtitleSearchRequest, SubtitleSearchResult};
+use crate::models::{
+    DownloadedSubtitle, SubtitleDownloadRequest, SubtitleSearchRequest, SubtitleSearchResult,
+};
 
 const ANIMESUBINFO_BASE_URL: &str = "http://animesub.info";
 const ANIMESUBINFO_SEARCH_URL: &str = "http://animesub.info/szukaj.php";
-const ANIMESUBINFO_USER_AGENT: &str =
-    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
+const ANIMESUBINFO_USER_AGENT: &str = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
 
 pub struct AnimesubinfoProvider {
     staging_root: PathBuf,
@@ -48,7 +49,10 @@ impl SubtitleProvider for AnimesubinfoProvider {
         "animesubinfo"
     }
 
-    async fn search(&self, request: &SubtitleSearchRequest) -> Result<Vec<SubtitleSearchResult>, String> {
+    async fn search(
+        &self,
+        request: &SubtitleSearchRequest,
+    ) -> Result<Vec<SubtitleSearchResult>, String> {
         let query = request
             .query
             .as_deref()
@@ -59,7 +63,11 @@ impl SubtitleProvider for AnimesubinfoProvider {
 
         let response = client
             .get(ANIMESUBINFO_SEARCH_URL)
-            .query(&[("szukane", query.trim()), ("pTitle", "org"), ("pSortuj", "pobrn")])
+            .query(&[
+                ("szukane", query.trim()),
+                ("pTitle", "org"),
+                ("pSortuj", "pobrn"),
+            ])
             .send()
             .await
             .map_err(|e| format!("AnimeSubInfo search failed: {e}"))?;
@@ -81,10 +89,14 @@ impl SubtitleProvider for AnimesubinfoProvider {
         let document = Html::parse_document(&html);
 
         // Each subtitle is in a table with class "Napisy" that has rows with class "KNap"
-        let table_sel = Selector::parse("table.Napisy").map_err(|e| format!("AnimeSubInfo selector error: {e}"))?;
-        let row_sel = Selector::parse("tr.KNap").map_err(|e| format!("AnimeSubInfo selector error: {e}"))?;
-        let td_sel = Selector::parse("td").map_err(|e| format!("AnimeSubInfo selector error: {e}"))?;
-        let a_sel = Selector::parse("a").map_err(|e| format!("AnimeSubInfo selector error: {e}"))?;
+        let table_sel = Selector::parse("table.Napisy")
+            .map_err(|e| format!("AnimeSubInfo selector error: {e}"))?;
+        let row_sel =
+            Selector::parse("tr.KNap").map_err(|e| format!("AnimeSubInfo selector error: {e}"))?;
+        let td_sel =
+            Selector::parse("td").map_err(|e| format!("AnimeSubInfo selector error: {e}"))?;
+        let a_sel =
+            Selector::parse("a").map_err(|e| format!("AnimeSubInfo selector error: {e}"))?;
 
         let mut results = Vec::new();
         let mut index = 0usize;
@@ -113,7 +125,9 @@ impl SubtitleProvider for AnimesubinfoProvider {
                 .map(|td| td.text().collect::<String>().trim().to_string())
                 .unwrap_or_default();
 
-            let format = if format_type.to_lowercase().contains("ass") || format_type.to_lowercase().contains("ssa") {
+            let format = if format_type.to_lowercase().contains("ass")
+                || format_type.to_lowercase().contains("ssa")
+            {
                 "ass"
             } else {
                 "srt"
@@ -150,7 +164,9 @@ impl SubtitleProvider for AnimesubinfoProvider {
                 }
             });
 
-            let id = download_url.clone().unwrap_or_else(|| format!("animesubinfo-{index}"));
+            let id = download_url
+                .clone()
+                .unwrap_or_else(|| format!("animesubinfo-{index}"));
 
             results.push(SubtitleSearchResult {
                 id,
@@ -173,7 +189,10 @@ impl SubtitleProvider for AnimesubinfoProvider {
         Ok(results)
     }
 
-    async fn download(&self, request: &SubtitleDownloadRequest) -> Result<DownloadedSubtitle, String> {
+    async fn download(
+        &self,
+        request: &SubtitleDownloadRequest,
+    ) -> Result<DownloadedSubtitle, String> {
         let download_url = request
             .download_path
             .as_deref()
@@ -206,11 +225,21 @@ impl SubtitleProvider for AnimesubinfoProvider {
             .unwrap_or("subtitle.zip");
 
         // Try archive extraction; if it fails, return as raw content
-        if let Ok(sub) = extract_archive(&content, archive_name, &request.language, &self.staging_root).await {
+        if let Ok(sub) = extract_archive(
+            &content,
+            archive_name,
+            &request.language,
+            &self.staging_root,
+        )
+        .await
+        {
             Ok(sub)
         } else {
             let format = request.format.clone();
-            let name = request.name.clone().unwrap_or_else(|| format!("subtitle.{format}"));
+            let name = request
+                .name
+                .clone()
+                .unwrap_or_else(|| format!("subtitle.{format}"));
             Ok(DownloadedSubtitle {
                 name,
                 format,

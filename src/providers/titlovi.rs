@@ -8,7 +8,8 @@ use tokio::sync::Mutex;
 use super::SubtitleProvider;
 use crate::archive::extract_archive;
 use crate::models::{
-    DownloadedSubtitle, SubtitleDownloadRequest, SubtitleSearchRequest, SubtitleSearchResult, normalize_format,
+    DownloadedSubtitle, SubtitleDownloadRequest, SubtitleSearchRequest, SubtitleSearchResult,
+    normalize_format,
 };
 
 const API_BASE: &str = "https://kodi.titlovi.com/api/subtitles";
@@ -81,10 +82,15 @@ impl TitloviProvider {
             .map_err(|e| format!("Titlovi: login request failed: {e}"))?;
 
         if resp.status().as_u16() == 401 {
-            return Err("Titlovi: authentication failed — check TITLOVI_USER / TITLOVI_PASS".into());
+            return Err(
+                "Titlovi: authentication failed — check TITLOVI_USER / TITLOVI_PASS".into(),
+            );
         }
         if !resp.status().is_success() {
-            return Err(format!("Titlovi: login failed with HTTP {}", resp.status().as_u16()));
+            return Err(format!(
+                "Titlovi: login failed with HTTP {}",
+                resp.status().as_u16()
+            ));
         }
 
         let data: TokenResponse = resp
@@ -149,7 +155,10 @@ impl SubtitleProvider for TitloviProvider {
         "titlovi"
     }
 
-    async fn search(&self, request: &SubtitleSearchRequest) -> Result<Vec<SubtitleSearchResult>, String> {
+    async fn search(
+        &self,
+        request: &SubtitleSearchRequest,
+    ) -> Result<Vec<SubtitleSearchResult>, String> {
         let (token, user_id) = self.ensure_token().await?;
 
         let query = request.query.clone().unwrap_or_default();
@@ -179,7 +188,10 @@ impl SubtitleProvider for TitloviProvider {
             .map_err(|e| format!("Titlovi: search request failed: {e}"))?;
 
         if !resp.status().is_success() {
-            return Err(format!("Titlovi: search failed with HTTP {}", resp.status().as_u16()));
+            return Err(format!(
+                "Titlovi: search failed with HTTP {}",
+                resp.status().as_u16()
+            ));
         }
 
         let data: TitloviSearchResponse = resp
@@ -217,7 +229,11 @@ impl SubtitleProvider for TitloviProvider {
                 download_count: sub.download_count,
                 rating: sub.rating,
                 movie_name: sub.title,
-                release_group: if release.is_empty() { None } else { Some(release) },
+                release_group: if release.is_empty() {
+                    None
+                } else {
+                    Some(release)
+                },
             });
         }
 
@@ -225,7 +241,10 @@ impl SubtitleProvider for TitloviProvider {
         Ok(results)
     }
 
-    async fn download(&self, request: &SubtitleDownloadRequest) -> Result<DownloadedSubtitle, String> {
+    async fn download(
+        &self,
+        request: &SubtitleDownloadRequest,
+    ) -> Result<DownloadedSubtitle, String> {
         let url = request
             .download_path
             .as_deref()
@@ -239,7 +258,10 @@ impl SubtitleProvider for TitloviProvider {
             .map_err(|e| format!("Titlovi: download request failed: {e}"))?;
 
         if !resp.status().is_success() {
-            return Err(format!("Titlovi: download failed with HTTP {}", resp.status().as_u16()));
+            return Err(format!(
+                "Titlovi: download failed with HTTP {}",
+                resp.status().as_u16()
+            ));
         }
 
         let file_name = resp
@@ -247,7 +269,8 @@ impl SubtitleProvider for TitloviProvider {
             .get("content-disposition")
             .and_then(|v| v.to_str().ok())
             .and_then(|v| {
-                let re = regex::Regex::new(r#"filename[^;=\n]*=(?:'([^']*)'|"([^"]*)"|([^;\n]*))"#).ok()?;
+                let re = regex::Regex::new(r#"filename[^;=\n]*=(?:'([^']*)'|"([^"]*)"|([^;\n]*))"#)
+                    .ok()?;
                 re.captures(v)
                     .and_then(|c| c.get(1).or_else(|| c.get(2)).or_else(|| c.get(3)))
                     .map(|m| m.as_str().trim().to_string())

@@ -12,8 +12,7 @@ use crate::models::{
 };
 
 const GREEKSUBS_BASE: &str = "https://greeksubs.net/";
-const USER_AGENT: &str =
-    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
+const USER_AGENT: &str = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
 
 pub struct GreekSubsProvider {
     staging_root: PathBuf,
@@ -41,8 +40,14 @@ impl SubtitleProvider for GreekSubsProvider {
         "greeksubs"
     }
 
-    async fn search(&self, request: &SubtitleSearchRequest) -> Result<Vec<SubtitleSearchResult>, String> {
-        let imdb_id = request.imdb_id.as_deref().ok_or("greeksubs requires imdb_id")?;
+    async fn search(
+        &self,
+        request: &SubtitleSearchRequest,
+    ) -> Result<Vec<SubtitleSearchResult>, String> {
+        let imdb_id = request
+            .imdb_id
+            .as_deref()
+            .ok_or("greeksubs requires imdb_id")?;
 
         let url = format!("{GREEKSUBS_BASE}en/view/{imdb_id}");
         let client = build_client()?;
@@ -67,7 +72,8 @@ impl SubtitleProvider for GreekSubsProvider {
         let document = Html::parse_document(&html);
 
         // Extract secCode
-        let sec_sel = Selector::parse("input#secCode").map_err(|e| format!("greeksubs selector error: {e}"))?;
+        let sec_sel = Selector::parse("input#secCode")
+            .map_err(|e| format!("greeksubs selector error: {e}"))?;
         let sec_code = document
             .select(&sec_sel)
             .next()
@@ -76,8 +82,10 @@ impl SubtitleProvider for GreekSubsProvider {
             .to_string();
 
         // Parse subtitle rows
-        let row_sel = Selector::parse("#elSub > tbody > tr").map_err(|e| format!("greeksubs selector error: {e}"))?;
-        let img_sel = Selector::parse("img").map_err(|e| format!("greeksubs selector error: {e}"))?;
+        let row_sel = Selector::parse("#elSub > tbody > tr")
+            .map_err(|e| format!("greeksubs selector error: {e}"))?;
+        let img_sel =
+            Selector::parse("img").map_err(|e| format!("greeksubs selector error: {e}"))?;
 
         let re_dl = Regex::new(r"downloadMe\('([^']+)'\)").unwrap();
 
@@ -150,7 +158,10 @@ impl SubtitleProvider for GreekSubsProvider {
         Ok(results)
     }
 
-    async fn download(&self, request: &SubtitleDownloadRequest) -> Result<DownloadedSubtitle, String> {
+    async fn download(
+        &self,
+        request: &SubtitleDownloadRequest,
+    ) -> Result<DownloadedSubtitle, String> {
         let download_url = request
             .download_path
             .as_deref()
@@ -170,15 +181,20 @@ impl SubtitleProvider for GreekSubsProvider {
             return Err(format!("greeksubs GET failed: {}", resp.status()));
         }
 
-        let html = resp.text().await.map_err(|e| format!("greeksubs read error: {e}"))?;
+        let html = resp
+            .text()
+            .await
+            .map_err(|e| format!("greeksubs read error: {e}"))?;
 
         let form_data = {
             let document = Html::parse_document(&html);
-            let input_sel =
-                Selector::parse("input[type='hidden']").map_err(|e| format!("greeksubs selector error: {e}"))?;
+            let input_sel = Selector::parse("input[type='hidden']")
+                .map_err(|e| format!("greeksubs selector error: {e}"))?;
             let mut data = std::collections::HashMap::new();
             for input in document.select(&input_sel) {
-                if let (Some(name), Some(value)) = (input.value().attr("name"), input.value().attr("value")) {
+                if let (Some(name), Some(value)) =
+                    (input.value().attr("name"), input.value().attr("value"))
+                {
                     data.insert(name.to_string(), value.to_string());
                 }
             }
@@ -203,6 +219,12 @@ impl SubtitleProvider for GreekSubsProvider {
             .await
             .map_err(|e| format!("greeksubs read content error: {e}"))?;
 
-        extract_archive(&content, "subtitle.zip", &request.language, &self.staging_root).await
+        extract_archive(
+            &content,
+            "subtitle.zip",
+            &request.language,
+            &self.staging_root,
+        )
+        .await
     }
 }

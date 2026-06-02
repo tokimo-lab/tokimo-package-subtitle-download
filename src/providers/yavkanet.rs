@@ -4,11 +4,12 @@ use std::path::PathBuf;
 
 use super::SubtitleProvider;
 use crate::archive::extract_archive;
-use crate::models::{DownloadedSubtitle, SubtitleDownloadRequest, SubtitleSearchRequest, SubtitleSearchResult};
+use crate::models::{
+    DownloadedSubtitle, SubtitleDownloadRequest, SubtitleSearchRequest, SubtitleSearchResult,
+};
 
 const YAVKANET_BASE_URL: &str = "https://yavka.net";
-const YAVKANET_USER_AGENT: &str =
-    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
+const YAVKANET_USER_AGENT: &str = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
 
 pub struct YavkanetProvider {
     staging_root: PathBuf,
@@ -47,8 +48,14 @@ impl SubtitleProvider for YavkanetProvider {
         "yavkanet"
     }
 
-    async fn search(&self, request: &SubtitleSearchRequest) -> Result<Vec<SubtitleSearchResult>, String> {
-        let imdb_id = request.imdb_id.as_deref().ok_or("YavkaNet search requires imdb_id")?;
+    async fn search(
+        &self,
+        request: &SubtitleSearchRequest,
+    ) -> Result<Vec<SubtitleSearchResult>, String> {
+        let imdb_id = request
+            .imdb_id
+            .as_deref()
+            .ok_or("YavkaNet search requires imdb_id")?;
 
         let client = Self::build_client()?;
 
@@ -71,10 +78,11 @@ impl SubtitleProvider for YavkanetProvider {
 
         let document = Html::parse_document(&html);
         let row_sel = Selector::parse("tr").map_err(|e| format!("YavkaNet selector error: {e}"))?;
-        let a_balon_sel =
-            Selector::parse("a.balon, a.selector").map_err(|e| format!("YavkaNet selector error: {e}"))?;
+        let a_balon_sel = Selector::parse("a.balon, a.selector")
+            .map_err(|e| format!("YavkaNet selector error: {e}"))?;
         let td_sel = Selector::parse("td").map_err(|e| format!("YavkaNet selector error: {e}"))?;
-        let _span_sel = Selector::parse("span.smGray, span").map_err(|e| format!("YavkaNet selector error: {e}"))?;
+        let _span_sel = Selector::parse("span.smGray, span")
+            .map_err(|e| format!("YavkaNet selector error: {e}"))?;
 
         let mut results = Vec::new();
 
@@ -114,7 +122,9 @@ impl SubtitleProvider for YavkanetProvider {
                 )
             };
 
-            let release_group = fps.map(|f| format!("{f:.3} fps")).or_else(|| uploader.clone());
+            let release_group = fps
+                .map(|f| format!("{f:.3} fps"))
+                .or_else(|| uploader.clone());
 
             results.push(SubtitleSearchResult {
                 id: download_url.clone(),
@@ -135,7 +145,10 @@ impl SubtitleProvider for YavkanetProvider {
         Ok(results)
     }
 
-    async fn download(&self, request: &SubtitleDownloadRequest) -> Result<DownloadedSubtitle, String> {
+    async fn download(
+        &self,
+        request: &SubtitleDownloadRequest,
+    ) -> Result<DownloadedSubtitle, String> {
         let download_url = request
             .download_path
             .as_deref()
@@ -153,7 +166,10 @@ impl SubtitleProvider for YavkanetProvider {
             .map_err(|e| format!("YavkaNet download failed: {e}"))?;
 
         if !response.status().is_success() {
-            return Err(format!("YavkaNet download failed: HTTP {}", response.status().as_u16()));
+            return Err(format!(
+                "YavkaNet download failed: HTTP {}",
+                response.status().as_u16()
+            ));
         }
 
         let content = response
@@ -167,6 +183,12 @@ impl SubtitleProvider for YavkanetProvider {
             .filter(|s| !s.is_empty())
             .unwrap_or("subtitle.zip");
 
-        extract_archive(&content, archive_name, &request.language, &self.staging_root).await
+        extract_archive(
+            &content,
+            archive_name,
+            &request.language,
+            &self.staging_root,
+        )
+        .await
     }
 }

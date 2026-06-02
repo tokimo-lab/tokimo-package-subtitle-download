@@ -1,7 +1,9 @@
 use async_trait::async_trait;
 
 use super::SubtitleProvider;
-use crate::models::{DownloadedSubtitle, SubtitleDownloadRequest, SubtitleSearchRequest, SubtitleSearchResult};
+use crate::models::{
+    DownloadedSubtitle, SubtitleDownloadRequest, SubtitleSearchRequest, SubtitleSearchResult,
+};
 
 const SUBTIS_API_BASE: &str = "https://api.subt.is/v1";
 const SUBTIS_USER_AGENT: &str = "subtitle-aggregator/Subtis/0.9.2";
@@ -32,7 +34,11 @@ impl SubtisProvider {
             return None;
         }
         let data: serde_json::Value = response.json().await.ok()?;
-        let subtitle_link = data.get("subtitle")?.get("subtitle_link")?.as_str()?.to_string();
+        let subtitle_link = data
+            .get("subtitle")?
+            .get("subtitle_link")?
+            .as_str()?
+            .to_string();
         let title_name = data
             .get("title")
             .and_then(|t| t.get("title_name"))
@@ -52,23 +58,36 @@ impl SubtitleProvider for SubtisProvider {
         "subtis"
     }
 
-    async fn search(&self, request: &SubtitleSearchRequest) -> Result<Vec<SubtitleSearchResult>, String> {
+    async fn search(
+        &self,
+        request: &SubtitleSearchRequest,
+    ) -> Result<Vec<SubtitleSearchResult>, String> {
         let client = Self::build_client()?;
 
         // Build cascade of search URLs: hash -> bytes -> filename -> alternative
         let mut cascade: Vec<(String, &str)> = Vec::new();
 
         if let Some(hash) = &request.file_hash {
-            cascade.push((format!("{SUBTIS_API_BASE}/subtitle/find/file/hash/{hash}"), "hash"));
+            cascade.push((
+                format!("{SUBTIS_API_BASE}/subtitle/find/file/hash/{hash}"),
+                "hash",
+            ));
         }
         if let Some(size) = request.file_size {
-            cascade.push((format!("{SUBTIS_API_BASE}/subtitle/find/file/bytes/{size}"), "bytes"));
+            cascade.push((
+                format!("{SUBTIS_API_BASE}/subtitle/find/file/bytes/{size}"),
+                "bytes",
+            ));
         }
         if let Some(query) = &request.query
             && !query.trim().is_empty()
         {
-            let encoded = url::form_urlencoded::byte_serialize(query.trim().as_bytes()).collect::<String>();
-            cascade.push((format!("{SUBTIS_API_BASE}/subtitle/find/file/name/{encoded}"), "name"));
+            let encoded =
+                url::form_urlencoded::byte_serialize(query.trim().as_bytes()).collect::<String>();
+            cascade.push((
+                format!("{SUBTIS_API_BASE}/subtitle/find/file/name/{encoded}"),
+                "name",
+            ));
             cascade.push((
                 format!("{SUBTIS_API_BASE}/subtitle/file/alternative/{encoded}"),
                 "alternative",
@@ -107,7 +126,10 @@ impl SubtitleProvider for SubtisProvider {
         Ok(Vec::new())
     }
 
-    async fn download(&self, request: &SubtitleDownloadRequest) -> Result<DownloadedSubtitle, String> {
+    async fn download(
+        &self,
+        request: &SubtitleDownloadRequest,
+    ) -> Result<DownloadedSubtitle, String> {
         let download_url = request
             .download_path
             .as_deref()
@@ -121,7 +143,10 @@ impl SubtitleProvider for SubtisProvider {
             .map_err(|e| format!("Subtis download failed: {e}"))?;
 
         if !response.status().is_success() {
-            return Err(format!("Subtis download failed: HTTP {}", response.status().as_u16()));
+            return Err(format!(
+                "Subtis download failed: HTTP {}",
+                response.status().as_u16()
+            ));
         }
 
         let content = response
@@ -130,7 +155,10 @@ impl SubtitleProvider for SubtisProvider {
             .map_err(|e| format!("Failed to read Subtis download: {e}"))?;
 
         let format = request.format.clone();
-        let name = request.name.clone().unwrap_or_else(|| format!("subtitle.{format}"));
+        let name = request
+            .name
+            .clone()
+            .unwrap_or_else(|| format!("subtitle.{format}"));
 
         Ok(DownloadedSubtitle {
             name,

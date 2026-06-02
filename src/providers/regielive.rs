@@ -8,7 +8,8 @@ use std::collections::HashMap;
 use super::SubtitleProvider;
 use crate::archive::extract_archive;
 use crate::models::{
-    DownloadedSubtitle, SubtitleDownloadRequest, SubtitleSearchRequest, SubtitleSearchResult, normalize_format,
+    DownloadedSubtitle, SubtitleDownloadRequest, SubtitleSearchRequest, SubtitleSearchResult,
+    normalize_format,
 };
 
 const API_URL: &str = "https://api.regielive.ro/bazarr/search.php";
@@ -69,7 +70,10 @@ impl SubtitleProvider for RegieLiveProvider {
         "regielive"
     }
 
-    async fn search(&self, request: &SubtitleSearchRequest) -> Result<Vec<SubtitleSearchResult>, String> {
+    async fn search(
+        &self,
+        request: &SubtitleSearchRequest,
+    ) -> Result<Vec<SubtitleSearchResult>, String> {
         let client = build_client()?;
         let query = request.query.clone().unwrap_or_default();
 
@@ -105,7 +109,10 @@ impl SubtitleProvider for RegieLiveProvider {
             .map_err(|e| format!("RegieLive: search request failed: {e}"))?;
 
         if !resp.status().is_success() {
-            return Err(format!("RegieLive: search failed with HTTP {}", resp.status().as_u16()));
+            return Err(format!(
+                "RegieLive: search failed with HTTP {}",
+                resp.status().as_u16()
+            ));
         }
 
         let data: serde_json::Value = resp
@@ -120,8 +127,16 @@ impl SubtitleProvider for RegieLiveProvider {
             for (_film_key, film_val) in rezultate {
                 if let Some(subtitrari) = film_val.get("subtitrari").and_then(|s| s.as_object()) {
                     for (_sub_key, sub_val) in subtitrari {
-                        let titlu = sub_val.get("titlu").and_then(|t| t.as_str()).unwrap_or("").to_string();
-                        let sub_url = sub_val.get("url").and_then(|u| u.as_str()).unwrap_or("").to_string();
+                        let titlu = sub_val
+                            .get("titlu")
+                            .and_then(|t| t.as_str())
+                            .unwrap_or("")
+                            .to_string();
+                        let sub_url = sub_val
+                            .get("url")
+                            .and_then(|u| u.as_str())
+                            .unwrap_or("")
+                            .to_string();
                         let rating = sub_val
                             .get("rating")
                             .and_then(|r| r.get("nota"))
@@ -133,7 +148,11 @@ impl SubtitleProvider for RegieLiveProvider {
 
                         results.push(SubtitleSearchResult {
                             id: format!("regielive_{idx}"),
-                            name: if titlu.is_empty() { query.clone() } else { titlu.clone() },
+                            name: if titlu.is_empty() {
+                                query.clone()
+                            } else {
+                                titlu.clone()
+                            },
                             language: "ro".into(),
                             language_name: "Romanian".into(),
                             format: "srt".into(),
@@ -155,7 +174,10 @@ impl SubtitleProvider for RegieLiveProvider {
         Ok(results)
     }
 
-    async fn download(&self, request: &SubtitleDownloadRequest) -> Result<DownloadedSubtitle, String> {
+    async fn download(
+        &self,
+        request: &SubtitleDownloadRequest,
+    ) -> Result<DownloadedSubtitle, String> {
         let sub_url = request
             .download_path
             .as_deref()
@@ -200,7 +222,8 @@ impl SubtitleProvider for RegieLiveProvider {
             .get("content-disposition")
             .and_then(|v| v.to_str().ok())
             .and_then(|v| {
-                let re = regex::Regex::new(r#"filename[^;=\n]*=(?:'([^']*)'|"([^"]*)"|([^;\n]*))"#).ok()?;
+                let re = regex::Regex::new(r#"filename[^;=\n]*=(?:'([^']*)'|"([^"]*)"|([^;\n]*))"#)
+                    .ok()?;
                 re.captures(v)
                     .and_then(|c| c.get(1).or_else(|| c.get(2)).or_else(|| c.get(3)))
                     .map(|m| m.as_str().trim().to_string())
