@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use subtitle_aggregator::{
+use tokimo_package_subtitle_download::{
     aggregator::SubtitleAggregator,
     models::SubtitleSearchRequest,
     providers::{
