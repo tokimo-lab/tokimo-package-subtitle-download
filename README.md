@@ -1,53 +1,20 @@
-# Jimaku
+# tokimo-package-subtitle-download
 
-[![GitHub Actions workflow status](https://github.com/aeyoll/jimaku/workflows/ci/badge.svg)](https://github.com/aeyoll/jimaku/actions)
-[![LICENSE](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Minimum rustc version](https://img.shields.io/badge/rustc-1.57.0+-lightgray.svg)](#rust-version-requirements)
-[![Conventional commits](https://img.shields.io/badge/Conventional%20Commits-1.0.0-yellow.svg)](https://conventionalcommits.org)
+聚合多源字幕搜索与下载 — aggregated multi-source subtitle search and download.
 
-A subtitle downloader written in Rust
+## Features
 
-Providers
----
+- 40+ subtitle providers (OpenSubtitles, SubDL, Shooter, Assrt, Zimuku, etc.)
+- Parallel search across all providers
+- Archive extraction (ZIP, RAR, 7z, GZ)
+- Language and release group filtering
 
-_jimaku_ can search and download subtitles from the following providers:
+## Add to Cargo.toml
 
-- [betaseries](https://www.betaseries.com/)
-- [opensubtitles](https://www.opensubtitles.org/)
-
-Setup
----
-
-To be able to use _jimaku_, you need to have api keys for each provider.
-
-```shell
-export BETA_SERIES_API_KEY="..."
-export OPEN_SUBTITLES_API_KEY="..."
+```toml
+tokimo-package-subtitle-download = { git = "https://github.com/tokimo-lab/tokimo-package-subtitle-download" }
 ```
 
-Install
----
+## License
 
-With cargo:
-
-```shell
-cargo install jimaku
-```
-
-Or use the install-script and add `$HOME/.jimaku/bin` to your `$PATH`.
-
-````shell
-curl -fsSL https://raw.githubusercontent.com/aeyoll/jimaku/main/install.sh | bash
-````
-
-Usage
----
-
-```shell
-jimaku ~/file/path/file.mp4 --language=fr
-```
-
-Rust version requirements
----
-
-Rust >= 1.57.0+
+MIT
