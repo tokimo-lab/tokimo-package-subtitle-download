@@ -13,7 +13,8 @@ use crate::models::{
 };
 
 const BASE_URL: &str = "https://www.tvsubtitles.net/";
-const USER_AGENT: &str = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
+const USER_AGENT: &str =
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
 
 pub struct TvSubtitlesProvider;
 
@@ -105,9 +106,7 @@ fn tvsubtitles_code_to_name(code: &str) -> String {
 /// or `/images/flags/en.gif`.
 fn extract_lang_from_img_src(src: &str) -> Option<String> {
     let re = Regex::new(r"flags/([a-z]+)\.[a-z]{2,4}$").ok()?;
-    re.captures(src)
-        .and_then(|c| c.get(1))
-        .map(|m| m.as_str().to_string())
+    re.captures(src).and_then(|c| c.get(1)).map(|m| m.as_str().to_string())
 }
 
 /// Extract numeric ID from an href like `/tvshow-123.html` or `tvshow-123.html`.
@@ -125,10 +124,7 @@ async fn http_get(client: &Client, url: &str) -> Result<String, String> {
         .await
         .map_err(|e| format!("tvsubtitles GET {url} failed: {e}"))?;
     if !resp.status().is_success() {
-        return Err(format!(
-            "tvsubtitles GET {url} returned {}",
-            resp.status().as_u16()
-        ));
+        return Err(format!("tvsubtitles GET {url} returned {}", resp.status().as_u16()));
     }
     resp.text()
         .await
@@ -142,10 +138,7 @@ async fn http_get_bytes(client: &Client, url: &str) -> Result<Vec<u8>, String> {
         .await
         .map_err(|e| format!("tvsubtitles GET {url} failed: {e}"))?;
     if !resp.status().is_success() {
-        return Err(format!(
-            "tvsubtitles GET {url} returned {}",
-            resp.status().as_u16()
-        ));
+        return Err(format!("tvsubtitles GET {url} returned {}", resp.status().as_u16()));
     }
     resp.bytes()
         .await
@@ -163,10 +156,7 @@ async fn search_show_id(client: &Client, query: &str) -> Result<Option<(u64, Str
         .await
         .map_err(|e| format!("tvsubtitles search POST failed: {e}"))?;
     if !resp.status().is_success() {
-        return Err(format!(
-            "tvsubtitles search returned {}",
-            resp.status().as_u16()
-        ));
+        return Err(format!("tvsubtitles search returned {}", resp.status().as_u16()));
     }
     let html = resp
         .text()
@@ -174,14 +164,11 @@ async fn search_show_id(client: &Client, query: &str) -> Result<Option<(u64, Str
         .map_err(|e| format!("tvsubtitles search read failed: {e}"))?;
 
     let document = Html::parse_document(&html);
-    let anchor_sel = Selector::parse("div.left li div a[href]")
-        .map_err(|e| format!("parse selector failed: {e}"))?;
+    let anchor_sel = Selector::parse("div.left li div a[href]").map_err(|e| format!("parse selector failed: {e}"))?;
 
     // Pattern: "Series Name (2010-2020)" or "Series Name (US) (2010-2020)"
-    let link_re = Regex::new(
-        r"^(?P<series>.+?)(?: \(?\d{4}\)?| \((?:US|UK)\))? \((?P<first_year>\d{4})-\d{4}\)$",
-    )
-    .map_err(|e| format!("link regex failed: {e}"))?;
+    let link_re = Regex::new(r"^(?P<series>.+?)(?: \(?\d{4}\)?| \((?:US|UK)\))? \((?P<first_year>\d{4})-\d{4}\)$")
+        .map_err(|e| format!("link regex failed: {e}"))?;
 
     for anchor in document.select(&anchor_sel) {
         let href = match anchor.value().attr("href") {
@@ -220,31 +207,19 @@ async fn search_show_id(client: &Client, query: &str) -> Result<Option<(u64, Str
 }
 
 /// Get episode IDs for a show's season. Returns map from episode_number → episode_id.
-async fn get_episode_ids(
-    client: &Client,
-    show_id: u64,
-    season: u32,
-) -> Result<Vec<(u32, u64)>, String> {
+async fn get_episode_ids(client: &Client, show_id: u64, season: u32) -> Result<Vec<(u32, u64)>, String> {
     let url = format!("{BASE_URL}tvshow-{show_id}-{season}.html");
     let html = http_get(client, &url).await?;
     let document = Html::parse_document(&html);
-    let row_sel = Selector::parse("table#table5 tr")
-        .map_err(|e| format!("parse table row selector failed: {e}"))?;
+    let row_sel = Selector::parse("table#table5 tr").map_err(|e| format!("parse table row selector failed: {e}"))?;
 
     let mut episodes = Vec::new();
-    let episode_href_re =
-        Regex::new(r"^/?episode-\d+\.html$").map_err(|e| format!("episode href regex: {e}"))?;
+    let episode_href_re = Regex::new(r"^/?episode-\d+\.html$").map_err(|e| format!("episode href regex: {e}"))?;
 
     for row in document.select(&row_sel) {
         let anchor = row
-            .select(
-                &Selector::parse("a[href]").map_err(|e| format!("anchor selector failed: {e}"))?,
-            )
-            .find(|a| {
-                a.value()
-                    .attr("href")
-                    .is_some_and(|h| episode_href_re.is_match(h))
-            });
+            .select(&Selector::parse("a[href]").map_err(|e| format!("anchor selector failed: {e}"))?)
+            .find(|a| a.value().attr("href").is_some_and(|h| episode_href_re.is_match(h)));
         let Some(anchor) = anchor else {
             continue;
         };
@@ -286,15 +261,11 @@ struct SubtitleEntry {
 }
 
 /// Get subtitle entries from an episode page.
-async fn get_episode_subtitles(
-    client: &Client,
-    episode_id: u64,
-) -> Result<Vec<SubtitleEntry>, String> {
+async fn get_episode_subtitles(client: &Client, episode_id: u64) -> Result<Vec<SubtitleEntry>, String> {
     let url = format!("{BASE_URL}episode-{episode_id}.html");
     let html = http_get(client, &url).await?;
     let document = Html::parse_document(&html);
-    let row_sel =
-        Selector::parse(".subtitlen").map_err(|e| format!("subtitlen selector failed: {e}"))?;
+    let row_sel = Selector::parse(".subtitlen").map_err(|e| format!("subtitlen selector failed: {e}"))?;
 
     let mut entries = Vec::new();
     for row in document.select(&row_sel) {
@@ -323,8 +294,7 @@ async fn get_episode_subtitles(
             .unwrap_or_else(|| "en".to_string());
 
         // Rip from <p title="rip">
-        let rip_sel =
-            Selector::parse(r#"p[title="rip"]"#).map_err(|e| format!("rip selector: {e}"))?;
+        let rip_sel = Selector::parse(r#"p[title="rip"]"#).map_err(|e| format!("rip selector: {e}"))?;
         let rip = row
             .select(&rip_sel)
             .next()
@@ -352,16 +322,12 @@ async fn get_episode_subtitles(
 
 /// Fetch `download-{subtitle_id}.html`, extract JS-concatenated URL parts,
 /// then download and return the raw ZIP/SRT bytes and filename.
-async fn fetch_subtitle_file(
-    client: &Client,
-    subtitle_id: u64,
-) -> Result<(Vec<u8>, String), String> {
+async fn fetch_subtitle_file(client: &Client, subtitle_id: u64) -> Result<(Vec<u8>, String), String> {
     let download_page_url = format!("{BASE_URL}download-{subtitle_id}.html");
     let html = http_get(client, &download_page_url).await?;
 
     // Find JS parts: s1 = 'abc'; s2 = 'def'; …
-    let parts_re =
-        Regex::new(r"s\d\s*=\s*'([^']*)'").map_err(|e| format!("js parts regex: {e}"))?;
+    let parts_re = Regex::new(r"s\d\s*=\s*'([^']*)'").map_err(|e| format!("js parts regex: {e}"))?;
     let parts: Vec<&str> = parts_re
         .captures_iter(&html)
         .filter_map(|c| c.get(1).map(|m| m.as_str()))
@@ -391,8 +357,7 @@ async fn fetch_subtitle_file(
 /// Extract the first subtitle file from a ZIP archive.
 fn extract_from_zip(bytes: &[u8]) -> Result<(Vec<u8>, String), String> {
     let cursor = Cursor::new(bytes);
-    let mut zip =
-        ZipArchive::new(cursor).map_err(|e| format!("tvsubtitles: zip open failed: {e}"))?;
+    let mut zip = ZipArchive::new(cursor).map_err(|e| format!("tvsubtitles: zip open failed: {e}"))?;
     if zip.is_empty() {
         return Err("tvsubtitles: zip archive is empty".to_string());
     }
@@ -420,10 +385,7 @@ impl SubtitleProvider for TvSubtitlesProvider {
         "tvsubtitles"
     }
 
-    async fn search(
-        &self,
-        request: &SubtitleSearchRequest,
-    ) -> Result<Vec<SubtitleSearchResult>, String> {
+    async fn search(&self, request: &SubtitleSearchRequest) -> Result<Vec<SubtitleSearchResult>, String> {
         let query = request
             .query
             .as_deref()
@@ -487,10 +449,7 @@ impl SubtitleProvider for TvSubtitlesProvider {
         Ok(results)
     }
 
-    async fn download(
-        &self,
-        request: &SubtitleDownloadRequest,
-    ) -> Result<DownloadedSubtitle, String> {
+    async fn download(&self, request: &SubtitleDownloadRequest) -> Result<DownloadedSubtitle, String> {
         let subtitle_id: u64 = request
             .subtitle_id
             .parse()
@@ -500,9 +459,7 @@ impl SubtitleProvider for TvSubtitlesProvider {
         let (bytes, filename) = fetch_subtitle_file(&client, subtitle_id).await?;
 
         // If the downloaded file is a ZIP, extract the first entry
-        let (content, name) = if filename.to_ascii_lowercase().ends_with(".zip")
-            || bytes.starts_with(b"PK\x03\x04")
-        {
+        let (content, name) = if filename.to_ascii_lowercase().ends_with(".zip") || bytes.starts_with(b"PK\x03\x04") {
             extract_from_zip(&bytes)?
         } else {
             (bytes, filename)

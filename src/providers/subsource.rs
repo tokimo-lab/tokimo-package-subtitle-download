@@ -5,8 +5,7 @@ use std::path::PathBuf;
 use super::SubtitleProvider;
 use crate::archive::extract_archive;
 use crate::models::{
-    DownloadedSubtitle, SubtitleDownloadRequest, SubtitleSearchRequest, SubtitleSearchResult,
-    normalize_format,
+    DownloadedSubtitle, SubtitleDownloadRequest, SubtitleSearchRequest, SubtitleSearchResult, normalize_format,
 };
 
 const SUBSOURCE_API_BASE: &str = "https://api.subsource.net/api/v1/";
@@ -413,10 +412,7 @@ impl SubtitleProvider for SubSourceProvider {
         "subsource"
     }
 
-    async fn search(
-        &self,
-        request: &SubtitleSearchRequest,
-    ) -> Result<Vec<SubtitleSearchResult>, String> {
+    async fn search(&self, request: &SubtitleSearchRequest) -> Result<Vec<SubtitleSearchResult>, String> {
         let client = Self::build_client()?;
 
         let title = request
@@ -489,11 +485,7 @@ impl SubtitleProvider for SubSourceProvider {
                 continue;
             }
 
-            tracing::info!(
-                "SubSource 语言 {:?} 返回 {} 条字幕",
-                lang_name,
-                subs_resp.data.len()
-            );
+            tracing::info!("SubSource 语言 {:?} 返回 {} 条字幕", lang_name, subs_resp.data.len());
 
             for item in subs_resp.data {
                 let subtitle_id = match &item.subtitle_id {
@@ -551,10 +543,7 @@ impl SubtitleProvider for SubSourceProvider {
         Ok(all_results)
     }
 
-    async fn download(
-        &self,
-        request: &SubtitleDownloadRequest,
-    ) -> Result<DownloadedSubtitle, String> {
+    async fn download(&self, request: &SubtitleDownloadRequest) -> Result<DownloadedSubtitle, String> {
         let download_url = request
             .download_path
             .as_deref()
@@ -586,14 +575,13 @@ impl SubtitleProvider for SubSourceProvider {
             .await
             .map_err(|e| format!("读取 SubSource 下载内容失败: {e}"))?;
 
-        let archive_name =
-            download_url
-                .rsplit('/')
-                .find(|s| !s.is_empty())
-                .map_or("subtitle.zip", |s| {
-                    // Strip query params if any
-                    s.split('?').next().unwrap_or(s)
-                });
+        let archive_name = download_url
+            .rsplit('/')
+            .find(|s| !s.is_empty())
+            .map_or("subtitle.zip", |s| {
+                // Strip query params if any
+                s.split('?').next().unwrap_or(s)
+            });
 
         let archive_name = if archive_name.contains('.') {
             archive_name.to_string()
@@ -601,12 +589,6 @@ impl SubtitleProvider for SubSourceProvider {
             format!("{archive_name}.zip")
         };
 
-        extract_archive(
-            &content,
-            &archive_name,
-            &request.language,
-            &self.staging_root,
-        )
-        .await
+        extract_archive(&content, &archive_name, &request.language, &self.staging_root).await
     }
 }

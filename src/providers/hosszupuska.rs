@@ -2,9 +2,7 @@ use async_trait::async_trait;
 use scraper::{Html, Selector};
 
 use super::SubtitleProvider;
-use crate::models::{
-    DownloadedSubtitle, SubtitleDownloadRequest, SubtitleSearchRequest, SubtitleSearchResult,
-};
+use crate::models::{DownloadedSubtitle, SubtitleDownloadRequest, SubtitleSearchRequest, SubtitleSearchResult};
 
 const HOSSZUPUSKA_BASE: &str = "http://hosszupuskasub.com";
 const STAGING_ROOT: &str = "/tmp/subtitle-aggregator";
@@ -19,10 +17,7 @@ fn parse_season_episode(s: &str) -> (u32, u32) {
         let season_str = &upper[s_pos + 1..s_pos + e_pos];
         let episode_str = &upper[s_pos + e_pos + 1..];
         // episode_str may have trailing non-digit characters
-        let episode_digits: String = episode_str
-            .chars()
-            .take_while(char::is_ascii_digit)
-            .collect();
+        let episode_digits: String = episode_str.chars().take_while(char::is_ascii_digit).collect();
         let season = season_str.parse::<u32>().unwrap_or(1);
         let episode = episode_digits.parse::<u32>().unwrap_or(1);
         return (season, episode);
@@ -50,14 +45,8 @@ impl SubtitleProvider for HosszupuskaProvider {
         "hosszupuska"
     }
 
-    async fn search(
-        &self,
-        request: &SubtitleSearchRequest,
-    ) -> Result<Vec<SubtitleSearchResult>, String> {
-        let query = request
-            .query
-            .as_deref()
-            .ok_or("hosszupuska: query is required")?;
+    async fn search(&self, request: &SubtitleSearchRequest) -> Result<Vec<SubtitleSearchResult>, String> {
+        let query = request.query.as_deref().ok_or("hosszupuska: query is required")?;
 
         let (season, episode) = parse_season_episode(query);
 
@@ -103,14 +92,10 @@ impl SubtitleProvider for HosszupuskaProvider {
 
         // Find rows that contain the subtitle indicator
         // Rows that match: tr containing `this.style.backgroundImage='url(css/over2.jpg)`
-        let row_sel =
-            Selector::parse("tr").map_err(|e| format!("hosszupuska: selector error: {e}"))?;
-        let td_sel =
-            Selector::parse("td").map_err(|e| format!("hosszupuska: selector error: {e}"))?;
-        let img_sel =
-            Selector::parse("img").map_err(|e| format!("hosszupuska: selector error: {e}"))?;
-        let a_sel =
-            Selector::parse("a").map_err(|e| format!("hosszupuska: selector error: {e}"))?;
+        let row_sel = Selector::parse("tr").map_err(|e| format!("hosszupuska: selector error: {e}"))?;
+        let td_sel = Selector::parse("td").map_err(|e| format!("hosszupuska: selector error: {e}"))?;
+        let img_sel = Selector::parse("img").map_err(|e| format!("hosszupuska: selector error: {e}"))?;
+        let a_sel = Selector::parse("a").map_err(|e| format!("hosszupuska: selector error: {e}"))?;
 
         let mut results = Vec::new();
 
@@ -190,10 +175,7 @@ impl SubtitleProvider for HosszupuskaProvider {
         Ok(results)
     }
 
-    async fn download(
-        &self,
-        request: &SubtitleDownloadRequest,
-    ) -> Result<DownloadedSubtitle, String> {
+    async fn download(&self, request: &SubtitleDownloadRequest) -> Result<DownloadedSubtitle, String> {
         let url = request
             .download_path
             .as_deref()

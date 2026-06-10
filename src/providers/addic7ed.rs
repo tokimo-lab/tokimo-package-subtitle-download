@@ -79,9 +79,7 @@ impl Addic7edProvider {
         let body = response.text().await.unwrap_or_default();
 
         if body.contains("Wrong password") || body.contains("doesn't exist") {
-            return Err(format!(
-                "Addic7ed: wrong username or password for '{username}'"
-            ));
+            return Err(format!("Addic7ed: wrong username or password for '{username}'"));
         }
 
         if body.contains("relax, slow down") {
@@ -112,8 +110,7 @@ impl Addic7edProvider {
             .map_err(|e| format!("Addic7ed shows.php read failed: {e}"))?;
 
         let document = Html::parse_document(&html);
-        let sel = Selector::parse(r"td > h3 > a[href]")
-            .map_err(|e| format!("Addic7ed selector error: {e}"))?;
+        let sel = Selector::parse(r"td > h3 > a[href]").map_err(|e| format!("Addic7ed selector error: {e}"))?;
 
         let mut result = Vec::new();
         for anchor in document.select(&sel) {
@@ -201,8 +198,7 @@ impl Addic7edProvider {
         // Parse HTML in a block so `Html` (not Send) is dropped before any `.await`.
         let movie_ids: Vec<(String, String)> = {
             let document = Html::parse_document(&html);
-            let link_sel =
-                Selector::parse(r"a[href]").map_err(|e| format!("Addic7ed selector error: {e}"))?;
+            let link_sel = Selector::parse(r"a[href]").map_err(|e| format!("Addic7ed selector error: {e}"))?;
             let mut ids = Vec::new();
             for anchor in document.select(&link_sel) {
                 let href = match anchor.value().attr("href") {
@@ -261,12 +257,9 @@ fn parse_episode_rows(
     languages: Option<&[String]>,
 ) -> Result<Vec<SubtitleSearchResult>, String> {
     let document = Html::parse_document(html);
-    let row_sel =
-        Selector::parse("tr.epeven").map_err(|e| format!("Addic7ed row selector error: {e}"))?;
-    let cell_sel =
-        Selector::parse("td").map_err(|e| format!("Addic7ed cell selector error: {e}"))?;
-    let link_sel =
-        Selector::parse("a[href]").map_err(|e| format!("Addic7ed link selector error: {e}"))?;
+    let row_sel = Selector::parse("tr.epeven").map_err(|e| format!("Addic7ed row selector error: {e}"))?;
+    let cell_sel = Selector::parse("td").map_err(|e| format!("Addic7ed cell selector error: {e}"))?;
+    let link_sel = Selector::parse("a[href]").map_err(|e| format!("Addic7ed link selector error: {e}"))?;
 
     let mut results = Vec::new();
 
@@ -358,10 +351,9 @@ fn parse_movie_rows(
     let document = Html::parse_document(html);
 
     // Tables with class "tabel95" and width="100%"
-    let table_sel = Selector::parse(r#"table[class="tabel95"]"#)
-        .map_err(|e| format!("Addic7ed table selector error: {e}"))?;
-    let link_sel =
-        Selector::parse("a[href]").map_err(|e| format!("Addic7ed link selector error: {e}"))?;
+    let table_sel =
+        Selector::parse(r#"table[class="tabel95"]"#).map_err(|e| format!("Addic7ed table selector error: {e}"))?;
+    let link_sel = Selector::parse("a[href]").map_err(|e| format!("Addic7ed link selector error: {e}"))?;
     let td_sel = Selector::parse("td").map_err(|e| format!("Addic7ed td selector error: {e}"))?;
 
     let mut results = Vec::new();
@@ -411,10 +403,7 @@ fn parse_movie_rows(
             .map(|b| {
                 let t = b.text().collect::<String>().trim().to_string();
                 // Strip leading word (e.g. "Version", "Versión")
-                t.split_once(' ')
-                    .map(|x| x.1)
-                    .map_or("", str::trim)
-                    .to_string()
+                t.split_once(' ').map(|x| x.1).map_or("", str::trim).to_string()
             })
             .filter(|v| !v.is_empty());
 
@@ -583,10 +572,7 @@ impl SubtitleProvider for Addic7edProvider {
         "addic7ed"
     }
 
-    async fn search(
-        &self,
-        request: &SubtitleSearchRequest,
-    ) -> Result<Vec<SubtitleSearchResult>, String> {
+    async fn search(&self, request: &SubtitleSearchRequest) -> Result<Vec<SubtitleSearchResult>, String> {
         let query = request
             .query
             .as_deref()
@@ -620,10 +606,7 @@ impl SubtitleProvider for Addic7edProvider {
         Ok(results)
     }
 
-    async fn download(
-        &self,
-        request: &SubtitleDownloadRequest,
-    ) -> Result<DownloadedSubtitle, String> {
+    async fn download(&self, request: &SubtitleDownloadRequest) -> Result<DownloadedSubtitle, String> {
         let download_path = request
             .download_path
             .as_deref()
@@ -636,12 +619,11 @@ impl SubtitleProvider for Addic7edProvider {
             self.ensure_logged_in().await?;
         }
 
-        let download_url =
-            if download_path.starts_with("http://") || download_path.starts_with("https://") {
-                download_path.to_string()
-            } else {
-                format!("{BASE}/{}", download_path.trim_start_matches('/'))
-            };
+        let download_url = if download_path.starts_with("http://") || download_path.starts_with("https://") {
+            download_path.to_string()
+        } else {
+            format!("{BASE}/{}", download_path.trim_start_matches('/'))
+        };
 
         let referer = request.detail_path.as_deref().unwrap_or(BASE).to_string();
 
@@ -673,8 +655,7 @@ impl SubtitleProvider for Addic7edProvider {
         }
 
         // Try to get filename from Content-Disposition
-        let disposition_name =
-            filename_from_disposition(response.headers().get(reqwest::header::CONTENT_DISPOSITION));
+        let disposition_name = filename_from_disposition(response.headers().get(reqwest::header::CONTENT_DISPOSITION));
 
         let content = response
             .bytes()

@@ -5,9 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use super::SubtitleProvider;
 use crate::archive::extract_archive;
-use crate::models::{
-    DownloadedSubtitle, SubtitleDownloadRequest, SubtitleSearchRequest, SubtitleSearchResult,
-};
+use crate::models::{DownloadedSubtitle, SubtitleDownloadRequest, SubtitleSearchRequest, SubtitleSearchResult};
 
 const SERVER_HOSTNAME: &str = "legendas.net/api";
 const UA: &str = "Sub-Zero/2";
@@ -24,10 +22,10 @@ fn build_client() -> Result<reqwest::Client, String> {
 }
 
 fn get_credentials() -> Result<(String, String), String> {
-    let user = std::env::var("LEGENDASNET_USER")
-        .map_err(|_| "legendasnet: LEGENDASNET_USER environment variable not set")?;
-    let pass = std::env::var("LEGENDASNET_PASS")
-        .map_err(|_| "legendasnet: LEGENDASNET_PASS environment variable not set")?;
+    let user =
+        std::env::var("LEGENDASNET_USER").map_err(|_| "legendasnet: LEGENDASNET_USER environment variable not set")?;
+    let pass =
+        std::env::var("LEGENDASNET_PASS").map_err(|_| "legendasnet: LEGENDASNET_PASS environment variable not set")?;
     Ok((user, pass))
 }
 
@@ -161,10 +159,7 @@ impl SubtitleProvider for LegendasNetProvider {
         "legendasnet"
     }
 
-    async fn search(
-        &self,
-        request: &SubtitleSearchRequest,
-    ) -> Result<Vec<SubtitleSearchResult>, String> {
+    async fn search(&self, request: &SubtitleSearchRequest) -> Result<Vec<SubtitleSearchResult>, String> {
         let (email, password) = get_credentials()?;
         let client = build_client()?;
         let token = login(&client, &email, &password).await?;
@@ -235,13 +230,8 @@ impl SubtitleProvider for LegendasNetProvider {
                 let release = item.release_name.clone().unwrap_or_default();
                 let uploader = item.uploader.clone().unwrap_or_else(|| "unknown".into());
                 let download_path = item.path.clone().unwrap_or_default();
-                let tmdb_id = item
-                    .tmdb_id
-                    .as_ref()
-                    .map(ToString::to_string)
-                    .unwrap_or_default();
-                let page_link =
-                    format!("https://legendas.net/tv_legenda?movie_id={tmdb_id}&legenda_id={id}");
+                let tmdb_id = item.tmdb_id.as_ref().map(ToString::to_string).unwrap_or_default();
+                let page_link = format!("https://legendas.net/tv_legenda?movie_id={tmdb_id}&legenda_id={id}");
                 let lang = if forced { "pt-forced" } else { "pt-BR" };
                 let lang_name = if forced {
                     "Portuguese (Forced)"
@@ -309,13 +299,8 @@ impl SubtitleProvider for LegendasNetProvider {
                 let release = item.release_name.clone().unwrap_or_default();
                 let uploader = item.uploader.clone().unwrap_or_else(|| "unknown".into());
                 let download_path = item.path.clone().unwrap_or_default();
-                let tmdb_id = item
-                    .tmdb_id
-                    .as_ref()
-                    .map(ToString::to_string)
-                    .unwrap_or_default();
-                let page_link =
-                    format!("https://legendas.net/legenda?movie_id={tmdb_id}&legenda_id={id}");
+                let tmdb_id = item.tmdb_id.as_ref().map(ToString::to_string).unwrap_or_default();
+                let page_link = format!("https://legendas.net/legenda?movie_id={tmdb_id}&legenda_id={id}");
                 let lang = if forced { "pt-forced" } else { "pt-BR" };
                 let lang_name = if forced {
                     "Portuguese (Forced)"
@@ -340,18 +325,11 @@ impl SubtitleProvider for LegendasNetProvider {
             }
         }
 
-        tracing::info!(
-            "legendasnet: found {} results for '{}'",
-            results.len(),
-            query
-        );
+        tracing::info!("legendasnet: found {} results for '{}'", results.len(), query);
         Ok(results)
     }
 
-    async fn download(
-        &self,
-        request: &SubtitleDownloadRequest,
-    ) -> Result<DownloadedSubtitle, String> {
+    async fn download(&self, request: &SubtitleDownloadRequest) -> Result<DownloadedSubtitle, String> {
         let (email, password) = get_credentials()?;
         let client = build_client()?;
         let token = login(&client, &email, &password).await?;

@@ -7,9 +7,7 @@ use serde::Deserialize;
 use sha1::{Digest, Sha1};
 
 use super::SubtitleProvider;
-use crate::models::{
-    DownloadedSubtitle, SubtitleDownloadRequest, SubtitleSearchRequest, SubtitleSearchResult,
-};
+use crate::models::{DownloadedSubtitle, SubtitleDownloadRequest, SubtitleSearchRequest, SubtitleSearchResult};
 
 const XUNLEI_SUB_API: &str = "http://sub.xmp.sandai.net:8000/subxl";
 
@@ -65,10 +63,7 @@ impl SubtitleProvider for XunleiSubtitleProvider {
         "xunlei"
     }
 
-    async fn search(
-        &self,
-        request: &SubtitleSearchRequest,
-    ) -> Result<Vec<SubtitleSearchResult>, String> {
+    async fn search(&self, request: &SubtitleSearchRequest) -> Result<Vec<SubtitleSearchResult>, String> {
         let cid = request
             .file_hash
             .as_deref()
@@ -90,10 +85,7 @@ impl SubtitleProvider for XunleiSubtitleProvider {
             .map_err(|e| format!("迅雷字幕搜索失败: {e}"))?;
 
         if !response.status().is_success() {
-            return Err(format!(
-                "迅雷字幕搜索失败: HTTP {}",
-                response.status().as_u16()
-            ));
+            return Err(format!("迅雷字幕搜索失败: HTTP {}", response.status().as_u16()));
         }
 
         let data: XunleiSubResponse = response
@@ -155,14 +147,8 @@ impl SubtitleProvider for XunleiSubtitleProvider {
         Ok(results)
     }
 
-    async fn download(
-        &self,
-        request: &SubtitleDownloadRequest,
-    ) -> Result<DownloadedSubtitle, String> {
-        let url = request
-            .download_path
-            .as_deref()
-            .ok_or("迅雷字幕下载缺少 URL")?;
+    async fn download(&self, request: &SubtitleDownloadRequest) -> Result<DownloadedSubtitle, String> {
+        let url = request.download_path.as_deref().ok_or("迅雷字幕下载缺少 URL")?;
 
         let client = reqwest::Client::builder()
             .user_agent("Thunder/3.0")
@@ -176,10 +162,7 @@ impl SubtitleProvider for XunleiSubtitleProvider {
             .map_err(|e| format!("迅雷字幕下载失败: {e}"))?;
 
         if !response.status().is_success() {
-            return Err(format!(
-                "迅雷字幕下载失败: HTTP {}",
-                response.status().as_u16()
-            ));
+            return Err(format!("迅雷字幕下载失败: HTTP {}", response.status().as_u16()));
         }
 
         let content = response

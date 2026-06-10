@@ -42,8 +42,7 @@ fn read_extracted_subtitles_from_dir(root: &Path) -> Result<Vec<ExtractedSubtitl
     let mut extracted_files = Vec::new();
 
     while let Some(directory) = directories.pop() {
-        let entries =
-            std::fs::read_dir(&directory).map_err(|error| format!("读取解压目录失败: {error}"))?;
+        let entries = std::fs::read_dir(&directory).map_err(|error| format!("读取解压目录失败: {error}"))?;
 
         for entry in entries {
             let entry = entry.map_err(|error| format!("遍历解压目录失败: {error}"))?;
@@ -58,15 +57,13 @@ fn read_extracted_subtitles_from_dir(root: &Path) -> Result<Vec<ExtractedSubtitl
                 continue;
             }
 
-            let file_name = path.file_name().map_or_else(
-                || "subtitle".into(),
-                |value| value.to_string_lossy().to_string(),
-            );
+            let file_name = path
+                .file_name()
+                .map_or_else(|| "subtitle".into(), |value| value.to_string_lossy().to_string());
             let Some(format) = normalize_format(&file_name) else {
                 continue;
             };
-            let content =
-                std::fs::read(&path).map_err(|error| format!("读取解压后的字幕失败: {error}"))?;
+            let content = std::fs::read(&path).map_err(|error| format!("读取解压后的字幕失败: {error}"))?;
             extracted_files.push(ExtractedSubtitleFile {
                 name: file_name,
                 format,
@@ -78,10 +75,7 @@ fn read_extracted_subtitles_from_dir(root: &Path) -> Result<Vec<ExtractedSubtitl
     Ok(extracted_files)
 }
 
-fn extract_rar_subtitles(
-    archive_path: &Path,
-    output_dir: &Path,
-) -> Result<Vec<ExtractedSubtitleFile>, String> {
+fn extract_rar_subtitles(archive_path: &Path, output_dir: &Path) -> Result<Vec<ExtractedSubtitleFile>, String> {
     let archive = UnrarArchive::new(archive_path).as_first_part();
     let mut archive = archive
         .open_for_processing()
@@ -94,16 +88,13 @@ fn extract_rar_subtitles(
         archive = if header.entry().is_file() {
             let destination = output_dir.join(&header.entry().filename);
             if let Some(parent) = destination.parent() {
-                std::fs::create_dir_all(parent)
-                    .map_err(|error| format!("创建 RAR 解压目录失败: {error}"))?;
+                std::fs::create_dir_all(parent).map_err(|error| format!("创建 RAR 解压目录失败: {error}"))?;
             }
             header
                 .extract_to(&destination)
                 .map_err(|error| format!("提取 RAR 字幕失败: {error}"))?
         } else {
-            header
-                .skip()
-                .map_err(|error| format!("跳过 RAR 条目失败: {error}"))?
+            header.skip().map_err(|error| format!("跳过 RAR 条目失败: {error}"))?
         };
     }
 
@@ -112,8 +103,7 @@ fn extract_rar_subtitles(
 
 fn extract_zip_subtitles(archive_path: &Path) -> Result<Vec<ExtractedSubtitleFile>, String> {
     let file = File::open(archive_path).map_err(|error| format!("打开 ZIP 压缩包失败: {error}"))?;
-    let mut archive =
-        ZipArchive::new(file).map_err(|error| format!("读取 ZIP 压缩包失败: {error}"))?;
+    let mut archive = ZipArchive::new(file).map_err(|error| format!("读取 ZIP 压缩包失败: {error}"))?;
     let mut extracted_files = Vec::new();
 
     for index in 0..archive.len() {
@@ -126,10 +116,7 @@ fn extract_zip_subtitles(archive_path: &Path) -> Result<Vec<ExtractedSubtitleFil
 
         let file_name = entry
             .enclosed_name()
-            .and_then(|path| {
-                path.file_name()
-                    .map(|value| value.to_string_lossy().to_string())
-            })
+            .and_then(|path| path.file_name().map(|value| value.to_string_lossy().to_string()))
             .unwrap_or_else(|| entry.name().to_string());
         let Some(format) = normalize_format(&file_name) else {
             continue;
@@ -149,12 +136,8 @@ fn extract_zip_subtitles(archive_path: &Path) -> Result<Vec<ExtractedSubtitleFil
     Ok(extracted_files)
 }
 
-fn extract_7z_subtitles(
-    archive_path: &Path,
-    output_dir: &Path,
-) -> Result<Vec<ExtractedSubtitleFile>, String> {
-    decompress_7z_file(archive_path, output_dir)
-        .map_err(|error| format!("解压 7z 字幕失败: {error}"))?;
+fn extract_7z_subtitles(archive_path: &Path, output_dir: &Path) -> Result<Vec<ExtractedSubtitleFile>, String> {
+    decompress_7z_file(archive_path, output_dir).map_err(|error| format!("解压 7z 字幕失败: {error}"))?;
 
     read_extracted_subtitles_from_dir(output_dir)
 }
@@ -165,9 +148,7 @@ pub async fn extract_archive(
     preferred_language: &str,
     staging_root: &Path,
 ) -> Result<DownloadedSubtitle, String> {
-    let temp_root = staging_root
-        .join("subtitle-extract")
-        .join(Uuid::new_v4().to_string());
+    let temp_root = staging_root.join("subtitle-extract").join(Uuid::new_v4().to_string());
     let result = async {
         let output_dir = temp_root.join("out");
         fs::create_dir_all(&output_dir)

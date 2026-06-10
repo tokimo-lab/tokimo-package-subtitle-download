@@ -2,9 +2,7 @@ use async_trait::async_trait;
 use scraper::{Html, Selector};
 
 use super::SubtitleProvider;
-use crate::models::{
-    DownloadedSubtitle, SubtitleDownloadRequest, SubtitleSearchRequest, SubtitleSearchResult,
-};
+use crate::models::{DownloadedSubtitle, SubtitleDownloadRequest, SubtitleSearchRequest, SubtitleSearchResult};
 
 const NEKUR_BASE: &str = "http://subtitri.nekur.net";
 const NEKUR_API: &str = "http://subtitri.nekur.net/modules/Subtitles.php";
@@ -30,10 +28,7 @@ impl SubtitleProvider for NekurProvider {
         "nekur"
     }
 
-    async fn search(
-        &self,
-        request: &SubtitleSearchRequest,
-    ) -> Result<Vec<SubtitleSearchResult>, String> {
+    async fn search(&self, request: &SubtitleSearchRequest) -> Result<Vec<SubtitleSearchResult>, String> {
         let title = request.query.as_deref().ok_or("nekur: query is required")?;
 
         let client = reqwest::Client::builder()
@@ -61,14 +56,10 @@ impl SubtitleProvider for NekurProvider {
 
         let document = Html::parse_document(&html);
 
-        let row_sel =
-            Selector::parse("tbody > tr").map_err(|e| format!("nekur: selector error: {e}"))?;
-        let title_sel =
-            Selector::parse(".title > a").map_err(|e| format!("nekur: selector error: {e}"))?;
-        let year_sel =
-            Selector::parse(".year").map_err(|e| format!("nekur: selector error: {e}"))?;
-        let notes_sel =
-            Selector::parse(".notes").map_err(|e| format!("nekur: selector error: {e}"))?;
+        let row_sel = Selector::parse("tbody > tr").map_err(|e| format!("nekur: selector error: {e}"))?;
+        let title_sel = Selector::parse(".title > a").map_err(|e| format!("nekur: selector error: {e}"))?;
+        let year_sel = Selector::parse(".year").map_err(|e| format!("nekur: selector error: {e}"))?;
+        let notes_sel = Selector::parse(".notes").map_err(|e| format!("nekur: selector error: {e}"))?;
 
         let mut results = Vec::new();
 
@@ -139,10 +130,7 @@ impl SubtitleProvider for NekurProvider {
         Ok(results)
     }
 
-    async fn download(
-        &self,
-        request: &SubtitleDownloadRequest,
-    ) -> Result<DownloadedSubtitle, String> {
+    async fn download(&self, request: &SubtitleDownloadRequest) -> Result<DownloadedSubtitle, String> {
         let url = request
             .download_path
             .as_deref()
@@ -176,8 +164,7 @@ impl SubtitleProvider for NekurProvider {
         // Try archive extraction; fall back to raw content if not an archive
         if content.starts_with(b"PK") || content.starts_with(b"Rar!") {
             let staging = std::path::Path::new(STAGING_ROOT);
-            return crate::archive::extract_archive(&content, &name, &request.language, staging)
-                .await;
+            return crate::archive::extract_archive(&content, &name, &request.language, staging).await;
         }
 
         let format = request.format.clone();

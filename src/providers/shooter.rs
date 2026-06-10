@@ -3,9 +3,7 @@ use md5::Digest as _;
 use serde::Deserialize;
 
 use super::SubtitleProvider;
-use crate::models::{
-    DownloadedSubtitle, SubtitleDownloadRequest, SubtitleSearchRequest, SubtitleSearchResult,
-};
+use crate::models::{DownloadedSubtitle, SubtitleDownloadRequest, SubtitleSearchRequest, SubtitleSearchResult};
 
 const SHOOTER_API_URL: &str = "https://www.shooter.cn/api/subapi.php";
 
@@ -93,10 +91,7 @@ impl SubtitleProvider for ShooterProvider {
         "shooter"
     }
 
-    async fn search(
-        &self,
-        request: &SubtitleSearchRequest,
-    ) -> Result<Vec<SubtitleSearchResult>, String> {
+    async fn search(&self, request: &SubtitleSearchRequest) -> Result<Vec<SubtitleSearchResult>, String> {
         let file_hash = request
             .file_hash
             .as_deref()
@@ -140,8 +135,8 @@ impl SubtitleProvider for ShooterProvider {
             return Ok(Vec::new());
         }
 
-        let subtitles: Vec<ShooterSubtitle> = serde_json::from_str(&body)
-            .map_err(|error| format!("解析射手网搜索结果失败: {error}"))?;
+        let subtitles: Vec<ShooterSubtitle> =
+            serde_json::from_str(&body).map_err(|error| format!("解析射手网搜索结果失败: {error}"))?;
 
         let mut results = Vec::new();
 
@@ -186,14 +181,8 @@ impl SubtitleProvider for ShooterProvider {
         Ok(results)
     }
 
-    async fn download(
-        &self,
-        request: &SubtitleDownloadRequest,
-    ) -> Result<DownloadedSubtitle, String> {
-        let download_url = request
-            .download_path
-            .as_deref()
-            .ok_or("射手网下载缺少下载地址")?;
+    async fn download(&self, request: &SubtitleDownloadRequest) -> Result<DownloadedSubtitle, String> {
+        let download_url = request.download_path.as_deref().ok_or("射手网下载缺少下载地址")?;
 
         let client = reqwest::Client::builder()
             .build()
@@ -206,10 +195,7 @@ impl SubtitleProvider for ShooterProvider {
             .map_err(|error| format!("下载射手网字幕失败: {error}"))?;
 
         if !response.status().is_success() {
-            return Err(format!(
-                "下载射手网字幕失败: HTTP {}",
-                response.status().as_u16()
-            ));
+            return Err(format!("下载射手网字幕失败: HTTP {}", response.status().as_u16()));
         }
 
         let content = response
@@ -218,10 +204,7 @@ impl SubtitleProvider for ShooterProvider {
             .map_err(|error| format!("读取射手网字幕内容失败: {error}"))?;
 
         let format = request.format.clone();
-        let name = request
-            .name
-            .clone()
-            .unwrap_or_else(|| format!("subtitle.{format}"));
+        let name = request.name.clone().unwrap_or_else(|| format!("subtitle.{format}"));
 
         Ok(DownloadedSubtitle {
             name,

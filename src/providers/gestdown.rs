@@ -6,9 +6,7 @@ use async_trait::async_trait;
 use serde::Deserialize;
 
 use super::SubtitleProvider;
-use crate::models::{
-    DownloadedSubtitle, SubtitleDownloadRequest, SubtitleSearchRequest, SubtitleSearchResult,
-};
+use crate::models::{DownloadedSubtitle, SubtitleDownloadRequest, SubtitleSearchRequest, SubtitleSearchResult};
 
 const BASE_URL: &str = "https://api.gestdown.info";
 const UA: &str = "Bazarr";
@@ -120,10 +118,7 @@ impl SubtitleProvider for GestdownProvider {
         "gestdown"
     }
 
-    async fn search(
-        &self,
-        request: &SubtitleSearchRequest,
-    ) -> Result<Vec<SubtitleSearchResult>, String> {
+    async fn search(&self, request: &SubtitleSearchRequest) -> Result<Vec<SubtitleSearchResult>, String> {
         let title = request.query.clone().unwrap_or_default();
         if title.trim().is_empty() {
             return Err("gestdown: search requires a query (series title)".into());
@@ -143,10 +138,7 @@ impl SubtitleProvider for GestdownProvider {
             return Ok(vec![]);
         }
         if !resp.status().is_success() {
-            return Err(format!(
-                "gestdown: show search HTTP {}",
-                resp.status().as_u16()
-            ));
+            return Err(format!("gestdown: show search HTTP {}", resp.status().as_u16()));
         }
 
         let search_result: SearchResponse = resp
@@ -162,11 +154,7 @@ impl SubtitleProvider for GestdownProvider {
             .iter()
             .map(String::as_str)
             .collect();
-        let effective_langs: Vec<&str> = if langs.is_empty() {
-            vec!["fr", "en"]
-        } else {
-            langs
-        };
+        let effective_langs: Vec<&str> = if langs.is_empty() { vec!["fr", "en"] } else { langs };
 
         let mut results = Vec::new();
 
@@ -193,18 +181,11 @@ impl SubtitleProvider for GestdownProvider {
             }
         }
 
-        tracing::info!(
-            "gestdown: found {} show results for '{}'",
-            results.len(),
-            title
-        );
+        tracing::info!("gestdown: found {} show results for '{}'", results.len(), title);
         Ok(results)
     }
 
-    async fn download(
-        &self,
-        request: &SubtitleDownloadRequest,
-    ) -> Result<DownloadedSubtitle, String> {
+    async fn download(&self, request: &SubtitleDownloadRequest) -> Result<DownloadedSubtitle, String> {
         // download_path should be the direct subtitle download URI from the API
         // detail_path may be the /subtitles/get/{show_id} base URL
         let url = if let Some(dl) = &request.download_path {
@@ -226,16 +207,10 @@ impl SubtitleProvider for GestdownProvider {
             .await
             .map_err(|e| format!("gestdown: download failed: {e}"))?;
         if !resp.status().is_success() {
-            return Err(format!(
-                "gestdown: download HTTP {}",
-                resp.status().as_u16()
-            ));
+            return Err(format!("gestdown: download HTTP {}", resp.status().as_u16()));
         }
 
-        let content = resp
-            .bytes()
-            .await
-            .map_err(|e| format!("gestdown: read content: {e}"))?;
+        let content = resp.bytes().await.map_err(|e| format!("gestdown: read content: {e}"))?;
         let name = request
             .name
             .clone()

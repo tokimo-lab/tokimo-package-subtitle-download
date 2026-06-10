@@ -52,9 +52,7 @@ pub mod zimuku;
 
 use async_trait::async_trait;
 
-use crate::models::{
-    DownloadedSubtitle, SubtitleDownloadRequest, SubtitleSearchRequest, SubtitleSearchResult,
-};
+use crate::models::{DownloadedSubtitle, SubtitleDownloadRequest, SubtitleSearchRequest, SubtitleSearchResult};
 
 /// Common trait for all subtitle providers
 #[async_trait]
@@ -63,14 +61,8 @@ pub trait SubtitleProvider: Send + Sync {
     fn name(&self) -> &str;
 
     /// Search for subtitles
-    async fn search(
-        &self,
-        request: &SubtitleSearchRequest,
-    ) -> Result<Vec<SubtitleSearchResult>, String>;
+    async fn search(&self, request: &SubtitleSearchRequest) -> Result<Vec<SubtitleSearchResult>, String>;
 
     /// Download a specific subtitle
-    async fn download(
-        &self,
-        request: &SubtitleDownloadRequest,
-    ) -> Result<DownloadedSubtitle, String>;
+    async fn download(&self, request: &SubtitleDownloadRequest) -> Result<DownloadedSubtitle, String>;
 }

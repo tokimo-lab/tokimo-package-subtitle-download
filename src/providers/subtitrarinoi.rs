@@ -7,8 +7,7 @@ use scraper::{Html, Selector};
 use super::SubtitleProvider;
 use crate::archive::extract_archive;
 use crate::models::{
-    DownloadedSubtitle, SubtitleDownloadRequest, SubtitleSearchRequest, SubtitleSearchResult,
-    normalize_format,
+    DownloadedSubtitle, SubtitleDownloadRequest, SubtitleSearchRequest, SubtitleSearchResult, normalize_format,
 };
 
 const SERVER_URL: &str = "https://www.subtitrari-noi.ro/";
@@ -41,10 +40,7 @@ impl SubtitleProvider for SubtitrariNoiProvider {
         "subtitrarinoi"
     }
 
-    async fn search(
-        &self,
-        request: &SubtitleSearchRequest,
-    ) -> Result<Vec<SubtitleSearchResult>, String> {
+    async fn search(&self, request: &SubtitleSearchRequest) -> Result<Vec<SubtitleSearchResult>, String> {
         let client = build_client()?;
 
         let query = request.query.clone().unwrap_or_default();
@@ -90,10 +86,7 @@ impl SubtitleProvider for SubtitrariNoiProvider {
         parse_subtitrarinoi_results(&html, &query)
     }
 
-    async fn download(
-        &self,
-        request: &SubtitleDownloadRequest,
-    ) -> Result<DownloadedSubtitle, String> {
+    async fn download(&self, request: &SubtitleDownloadRequest) -> Result<DownloadedSubtitle, String> {
         let url = request
             .download_path
             .as_deref()
@@ -120,8 +113,7 @@ impl SubtitleProvider for SubtitrariNoiProvider {
             .get("content-disposition")
             .and_then(|v| v.to_str().ok())
             .and_then(|v| {
-                let re = regex::Regex::new(r#"filename[^;=\n]*=(?:'([^']*)'|"([^"]*)"|([^;\n]*))"#)
-                    .ok()?;
+                let re = regex::Regex::new(r#"filename[^;=\n]*=(?:'([^']*)'|"([^"]*)"|([^;\n]*))"#).ok()?;
                 re.captures(v)
                     .and_then(|c| c.get(1).or_else(|| c.get(2)).or_else(|| c.get(3)))
                     .map(|m| m.as_str().trim().to_string())
@@ -145,24 +137,17 @@ impl SubtitleProvider for SubtitrariNoiProvider {
     }
 }
 
-fn parse_subtitrarinoi_results(
-    html: &str,
-    query: &str,
-) -> Result<Vec<SubtitleSearchResult>, String> {
+fn parse_subtitrarinoi_results(html: &str, query: &str) -> Result<Vec<SubtitleSearchResult>, String> {
     let document = Html::parse_document(html);
     let mut results = Vec::new();
 
-    let round_sel = Selector::parse(r#"div[id="round"]"#)
-        .map_err(|e| format!("SubtitrariNoi: selector error: {e}"))?;
-    let title_sel = Selector::parse("#content-main a")
-        .map_err(|e| format!("SubtitrariNoi: selector error: {e}"))?;
-    let download_sel =
-        Selector::parse(".buton a").map_err(|e| format!("SubtitrariNoi: selector error: {e}"))?;
-    let dl_count_sel = Selector::parse("#content-right p")
-        .map_err(|e| format!("SubtitrariNoi: selector error: {e}"))?;
+    let round_sel = Selector::parse(r#"div[id="round"]"#).map_err(|e| format!("SubtitrariNoi: selector error: {e}"))?;
+    let title_sel = Selector::parse("#content-main a").map_err(|e| format!("SubtitrariNoi: selector error: {e}"))?;
+    let download_sel = Selector::parse(".buton a").map_err(|e| format!("SubtitrariNoi: selector error: {e}"))?;
+    let dl_count_sel =
+        Selector::parse("#content-right p").map_err(|e| format!("SubtitrariNoi: selector error: {e}"))?;
 
-    let year_re = regex::Regex::new(r"\((\d{4})\)")
-        .map_err(|e| format!("SubtitrariNoi: regex error: {e}"))?;
+    let year_re = regex::Regex::new(r"\((\d{4})\)").map_err(|e| format!("SubtitrariNoi: regex error: {e}"))?;
 
     let rows: Vec<_> = document.select(&round_sel).collect();
 
@@ -198,12 +183,7 @@ fn parse_subtitrarinoi_results(
             continue;
         }
 
-        let title = full_title
-            .split('(')
-            .next()
-            .unwrap_or(&full_title)
-            .trim()
-            .to_string();
+        let title = full_title.split('(').next().unwrap_or(&full_title).trim().to_string();
 
         let year: Option<u64> = year_re
             .captures(&full_title)
@@ -233,11 +213,7 @@ fn parse_subtitrarinoi_results(
             download_path: Some(download_href),
             download_count,
             rating: None,
-            movie_name: Some(if query.is_empty() {
-                title
-            } else {
-                query.to_string()
-            }),
+            movie_name: Some(if query.is_empty() { title } else { query.to_string() }),
             release_group: None,
         });
     }

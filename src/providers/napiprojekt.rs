@@ -3,9 +3,7 @@ use std::fmt::Write as _;
 use async_trait::async_trait;
 
 use super::SubtitleProvider;
-use crate::models::{
-    DownloadedSubtitle, SubtitleDownloadRequest, SubtitleSearchRequest, SubtitleSearchResult,
-};
+use crate::models::{DownloadedSubtitle, SubtitleDownloadRequest, SubtitleSearchRequest, SubtitleSearchResult};
 
 const NAPIPROJEKT_API: &str = "https://napiprojekt.pl/unit_napisy/dl.php";
 const STAGING_ROOT: &str = "/tmp/subtitle-aggregator";
@@ -51,10 +49,7 @@ impl SubtitleProvider for NapiprojektProvider {
         "napiprojekt"
     }
 
-    async fn search(
-        &self,
-        request: &SubtitleSearchRequest,
-    ) -> Result<Vec<SubtitleSearchResult>, String> {
+    async fn search(&self, request: &SubtitleSearchRequest) -> Result<Vec<SubtitleSearchResult>, String> {
         let hash = request
             .file_hash
             .as_deref()
@@ -97,10 +92,7 @@ impl SubtitleProvider for NapiprojektProvider {
             return Ok(vec![]);
         }
 
-        let name = request
-            .query
-            .clone()
-            .unwrap_or_else(|| format!("napiprojekt_{hash}"));
+        let name = request.query.clone().unwrap_or_else(|| format!("napiprojekt_{hash}"));
 
         let result = SubtitleSearchResult {
             id: hash.to_string(),
@@ -120,10 +112,7 @@ impl SubtitleProvider for NapiprojektProvider {
         Ok(vec![result])
     }
 
-    async fn download(
-        &self,
-        request: &SubtitleDownloadRequest,
-    ) -> Result<DownloadedSubtitle, String> {
+    async fn download(&self, request: &SubtitleDownloadRequest) -> Result<DownloadedSubtitle, String> {
         let hash = request
             .download_path
             .as_deref()
@@ -174,13 +163,7 @@ impl SubtitleProvider for NapiprojektProvider {
         // Check if content looks like a zip archive
         if content.starts_with(b"PK") {
             let staging = std::path::Path::new(STAGING_ROOT);
-            return crate::archive::extract_archive(
-                &content,
-                &format!("{name}.zip"),
-                &request.language,
-                staging,
-            )
-            .await;
+            return crate::archive::extract_archive(&content, &format!("{name}.zip"), &request.language, staging).await;
         }
 
         Ok(DownloadedSubtitle {

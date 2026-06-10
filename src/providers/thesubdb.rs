@@ -6,9 +6,7 @@ use async_trait::async_trait;
 use md5::Digest as _;
 
 use super::SubtitleProvider;
-use crate::models::{
-    DownloadedSubtitle, SubtitleDownloadRequest, SubtitleSearchRequest, SubtitleSearchResult,
-};
+use crate::models::{DownloadedSubtitle, SubtitleDownloadRequest, SubtitleSearchRequest, SubtitleSearchResult};
 
 const THESUBDB_API: &str = "http://api.thesubdb.com/";
 const HASH_CHUNK: usize = 64 * 1024; // 64KB
@@ -53,14 +51,8 @@ impl SubtitleProvider for TheSubDbProvider {
         "thesubdb"
     }
 
-    async fn search(
-        &self,
-        request: &SubtitleSearchRequest,
-    ) -> Result<Vec<SubtitleSearchResult>, String> {
-        let hash = request
-            .file_hash
-            .as_deref()
-            .ok_or("TheSubDB 搜索需要提供 file_hash")?;
+    async fn search(&self, request: &SubtitleSearchRequest) -> Result<Vec<SubtitleSearchResult>, String> {
+        let hash = request.file_hash.as_deref().ok_or("TheSubDB 搜索需要提供 file_hash")?;
 
         let client = Self::build_client()?;
         let url = format!("{THESUBDB_API}?action=search&hash={hash}");
@@ -76,10 +68,7 @@ impl SubtitleProvider for TheSubDbProvider {
         }
 
         if !response.status().is_success() {
-            return Err(format!(
-                "TheSubDB 搜索失败: HTTP {}",
-                response.status().as_u16()
-            ));
+            return Err(format!("TheSubDB 搜索失败: HTTP {}", response.status().as_u16()));
         }
 
         // Response is comma-separated language codes: "en,pt,es"
@@ -128,18 +117,13 @@ impl SubtitleProvider for TheSubDbProvider {
         Ok(results)
     }
 
-    async fn download(
-        &self,
-        request: &SubtitleDownloadRequest,
-    ) -> Result<DownloadedSubtitle, String> {
+    async fn download(&self, request: &SubtitleDownloadRequest) -> Result<DownloadedSubtitle, String> {
         let dl_path = request
             .download_path
             .as_deref()
             .ok_or("TheSubDB 下载缺少 download_path")?;
 
-        let (hash, lang) = dl_path
-            .split_once('|')
-            .ok_or("TheSubDB download_path 格式错误")?;
+        let (hash, lang) = dl_path.split_once('|').ok_or("TheSubDB download_path 格式错误")?;
 
         let client = Self::build_client()?;
         let url = format!("{THESUBDB_API}?action=download&hash={hash}&language={lang}");
@@ -151,10 +135,7 @@ impl SubtitleProvider for TheSubDbProvider {
             .map_err(|e| format!("TheSubDB 下载失败: {e}"))?;
 
         if !response.status().is_success() {
-            return Err(format!(
-                "TheSubDB 下载失败: HTTP {}",
-                response.status().as_u16()
-            ));
+            return Err(format!("TheSubDB 下载失败: HTTP {}", response.status().as_u16()));
         }
 
         let content = response
@@ -162,10 +143,7 @@ impl SubtitleProvider for TheSubDbProvider {
             .await
             .map_err(|e| format!("读取 TheSubDB 字幕内容失败: {e}"))?;
 
-        let name = request
-            .name
-            .clone()
-            .unwrap_or_else(|| format!("{hash}.{lang}.srt"));
+        let name = request.name.clone().unwrap_or_else(|| format!("{hash}.{lang}.srt"));
 
         Ok(DownloadedSubtitle {
             name,

@@ -4,12 +4,11 @@ use std::path::PathBuf;
 
 use super::SubtitleProvider;
 use crate::archive::extract_archive;
-use crate::models::{
-    DownloadedSubtitle, SubtitleDownloadRequest, SubtitleSearchRequest, SubtitleSearchResult,
-};
+use crate::models::{DownloadedSubtitle, SubtitleDownloadRequest, SubtitleSearchRequest, SubtitleSearchResult};
 
 const SUBSUNACS_BASE_URL: &str = "https://subsunacs.net";
-const SUBSUNACS_USER_AGENT: &str = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
+const SUBSUNACS_USER_AGENT: &str =
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
 
 pub struct SubsunacsProvider {
     staging_root: PathBuf,
@@ -48,10 +47,7 @@ impl SubtitleProvider for SubsunacsProvider {
         "subsunacs"
     }
 
-    async fn search(
-        &self,
-        request: &SubtitleSearchRequest,
-    ) -> Result<Vec<SubtitleSearchResult>, String> {
+    async fn search(&self, request: &SubtitleSearchRequest) -> Result<Vec<SubtitleSearchResult>, String> {
         let query = request
             .query
             .as_deref()
@@ -105,12 +101,9 @@ impl SubtitleProvider for SubsunacsProvider {
             .map_err(|e| format!("Failed to read SubsUnacs response: {e}"))?;
 
         let document = Html::parse_document(&html);
-        let row_sel = Selector::parse("tr[onmouseover]")
-            .map_err(|e| format!("SubsUnacs selector error: {e}"))?;
-        let td_movie_sel =
-            Selector::parse("td.tdMovie").map_err(|e| format!("SubsUnacs selector error: {e}"))?;
-        let a_tooltip_sel =
-            Selector::parse("a.tooltip").map_err(|e| format!("SubsUnacs selector error: {e}"))?;
+        let row_sel = Selector::parse("tr[onmouseover]").map_err(|e| format!("SubsUnacs selector error: {e}"))?;
+        let td_movie_sel = Selector::parse("td.tdMovie").map_err(|e| format!("SubsUnacs selector error: {e}"))?;
+        let a_tooltip_sel = Selector::parse("a.tooltip").map_err(|e| format!("SubsUnacs selector error: {e}"))?;
         let td_sel = Selector::parse("td").map_err(|e| format!("SubsUnacs selector error: {e}"))?;
 
         let mut results = Vec::new();
@@ -162,9 +155,7 @@ impl SubtitleProvider for SubsunacsProvider {
                 )
             };
 
-            let release_group = fps
-                .map(|f| format!("{f:.3} fps"))
-                .or_else(|| uploader.clone());
+            let release_group = fps.map(|f| format!("{f:.3} fps")).or_else(|| uploader.clone());
 
             results.push(SubtitleSearchResult {
                 id: download_url.clone(),
@@ -185,10 +176,7 @@ impl SubtitleProvider for SubsunacsProvider {
         Ok(results)
     }
 
-    async fn download(
-        &self,
-        request: &SubtitleDownloadRequest,
-    ) -> Result<DownloadedSubtitle, String> {
+    async fn download(&self, request: &SubtitleDownloadRequest) -> Result<DownloadedSubtitle, String> {
         let download_url = request
             .download_path
             .as_deref()
@@ -220,12 +208,6 @@ impl SubtitleProvider for SubsunacsProvider {
             .filter(|s| !s.is_empty())
             .unwrap_or("subtitle.zip");
 
-        extract_archive(
-            &content,
-            archive_name,
-            &request.language,
-            &self.staging_root,
-        )
-        .await
+        extract_archive(&content, archive_name, &request.language, &self.staging_root).await
     }
 }

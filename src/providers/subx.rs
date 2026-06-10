@@ -2,9 +2,7 @@ use async_trait::async_trait;
 use serde::Deserialize;
 
 use super::SubtitleProvider;
-use crate::models::{
-    DownloadedSubtitle, SubtitleDownloadRequest, SubtitleSearchRequest, SubtitleSearchResult,
-};
+use crate::models::{DownloadedSubtitle, SubtitleDownloadRequest, SubtitleSearchRequest, SubtitleSearchResult};
 
 const SUBX_API_BASE: &str = "https://subx-api.duckdns.org/api/subtitles";
 const STAGING_ROOT: &str = "/tmp/subtitle-aggregator";
@@ -59,10 +57,7 @@ impl SubtitleProvider for SubxProvider {
         "subx"
     }
 
-    async fn search(
-        &self,
-        request: &SubtitleSearchRequest,
-    ) -> Result<Vec<SubtitleSearchResult>, String> {
+    async fn search(&self, request: &SubtitleSearchRequest) -> Result<Vec<SubtitleSearchResult>, String> {
         let api_key = self
             .api_key
             .as_deref()
@@ -78,10 +73,8 @@ impl SubtitleProvider for SubxProvider {
 
         let video_type = if season > 0 { "episode" } else { "movie" };
 
-        let mut params: Vec<(&str, String)> = vec![
-            ("limit", "200".to_string()),
-            ("video_type", video_type.to_string()),
-        ];
+        let mut params: Vec<(&str, String)> =
+            vec![("limit", "200".to_string()), ("video_type", video_type.to_string())];
 
         if let Some(imdb_id) = &request.imdb_id {
             params.push(("imdb_id", imdb_id.clone()));
@@ -153,10 +146,7 @@ impl SubtitleProvider for SubxProvider {
         Ok(results)
     }
 
-    async fn download(
-        &self,
-        request: &SubtitleDownloadRequest,
-    ) -> Result<DownloadedSubtitle, String> {
+    async fn download(&self, request: &SubtitleDownloadRequest) -> Result<DownloadedSubtitle, String> {
         let api_key = self
             .api_key
             .as_deref()
@@ -206,13 +196,8 @@ fn parse_series_query(query: &str) -> (String, u32, u32) {
         let after = &upper[s_pos + 2..];
         if let Some(e_pos) = after.find('E') {
             let season_str = &after[..e_pos];
-            let episode_str: String = after[e_pos + 1..]
-                .chars()
-                .take_while(char::is_ascii_digit)
-                .collect();
-            if let (Ok(season), Ok(episode)) =
-                (season_str.parse::<u32>(), episode_str.parse::<u32>())
-            {
+            let episode_str: String = after[e_pos + 1..].chars().take_while(char::is_ascii_digit).collect();
+            if let (Ok(season), Ok(episode)) = (season_str.parse::<u32>(), episode_str.parse::<u32>()) {
                 let series = query[..s_pos].trim().to_string();
                 return (series, season, episode);
             }

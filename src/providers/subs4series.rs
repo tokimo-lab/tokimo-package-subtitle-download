@@ -12,7 +12,8 @@ use crate::models::{
 };
 
 const SUBS4SERIES_BASE: &str = "https://www.subs4series.com";
-const USER_AGENT: &str = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
+const USER_AGENT: &str =
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
 
 pub struct Subs4SeriesProvider {
     staging_root: PathBuf,
@@ -49,14 +50,8 @@ impl SubtitleProvider for Subs4SeriesProvider {
         "subs4series"
     }
 
-    async fn search(
-        &self,
-        request: &SubtitleSearchRequest,
-    ) -> Result<Vec<SubtitleSearchResult>, String> {
-        let query = request
-            .query
-            .as_deref()
-            .ok_or("subs4series requires query")?;
+    async fn search(&self, request: &SubtitleSearchRequest) -> Result<Vec<SubtitleSearchResult>, String> {
+        let query = request.query.as_deref().ok_or("subs4series requires query")?;
 
         let (season, episode) = parse_season_episode(query)
             .ok_or("subs4series: query must contain season/episode pattern (e.g. S01E02)")?;
@@ -65,10 +60,8 @@ impl SubtitleProvider for Subs4SeriesProvider {
         let title_re = Regex::new(r"\s*[Ss]\d+[Ee]\d+.*").unwrap();
         let show_title = title_re.replace(query, "").trim().to_string();
 
-        let encoded =
-            url::form_urlencoded::byte_serialize(show_title.as_bytes()).collect::<String>();
-        let search_url =
-            format!("{SUBS4SERIES_BASE}/search_report.php?search={encoded}&searchType=1");
+        let encoded = url::form_urlencoded::byte_serialize(show_title.as_bytes()).collect::<String>();
+        let search_url = format!("{SUBS4SERIES_BASE}/search_report.php?search={encoded}&searchType=1");
 
         let client = build_client()?;
         let resp = client
@@ -81,10 +74,7 @@ impl SubtitleProvider for Subs4SeriesProvider {
             return Err(format!("subs4series search failed: {}", resp.status()));
         }
 
-        let html = resp
-            .text()
-            .await
-            .map_err(|e| format!("subs4series read error: {e}"))?;
+        let html = resp.text().await.map_err(|e| format!("subs4series read error: {e}"))?;
 
         let (show_link, show_path) = {
             let document = Html::parse_document(&html);
@@ -94,21 +84,12 @@ impl SubtitleProvider for Subs4SeriesProvider {
                 .select(&option_sel)
                 .find_map(|opt| {
                     let val = opt.value().attr("value").unwrap_or("").trim().to_string();
-                    if !val.is_empty() && val != "#" {
-                        Some(val)
-                    } else {
-                        None
-                    }
+                    if !val.is_empty() && val != "#" { Some(val) } else { None }
                 })
                 .ok_or("subs4series: no show options found")?;
 
             // Extract show path parts: tv-series/show-name-123
-            let parts: Vec<&str> = link
-                .trim_end_matches('/')
-                .split('/')
-                .rev()
-                .take(2)
-                .collect();
+            let parts: Vec<&str> = link.trim_end_matches('/').split('/').rev().take(2).collect();
             let path = if parts.len() == 2 {
                 format!("{}/{}", parts[1], parts[0])
             } else {
@@ -118,8 +99,7 @@ impl SubtitleProvider for Subs4SeriesProvider {
         };
         let _ = show_link;
 
-        let episode_url =
-            format!("{SUBS4SERIES_BASE}/{show_path}/season-{season}/episode-{episode}");
+        let episode_url = format!("{SUBS4SERIES_BASE}/{show_path}/season-{season}/episode-{episode}");
 
         let ep_resp = client
             .get(&episode_url)
@@ -131,10 +111,7 @@ impl SubtitleProvider for Subs4SeriesProvider {
             return Ok(Vec::new());
         }
         if !ep_resp.status().is_success() {
-            return Err(format!(
-                "subs4series episode request failed: {}",
-                ep_resp.status()
-            ));
+            return Err(format!("subs4series episode request failed: {}", ep_resp.status()));
         }
 
         let ep_html = ep_resp
@@ -148,8 +125,7 @@ impl SubtitleProvider for Subs4SeriesProvider {
             .map_err(|e| format!("subs4series selector error: {e}"))?;
         let b_sel = Selector::parse("b").map_err(|e| format!("subs4series selector error: {e}"))?;
         let a_sel = Selector::parse("a").map_err(|e| format!("subs4series selector error: {e}"))?;
-        let img_sel =
-            Selector::parse("img").map_err(|e| format!("subs4series selector error: {e}"))?;
+        let img_sel = Selector::parse("img").map_err(|e| format!("subs4series selector error: {e}"))?;
 
         let mut results = Vec::new();
 
@@ -183,12 +159,7 @@ impl SubtitleProvider for Subs4SeriesProvider {
                 .and_then(|src| src.rsplit('/').next())
                 .map_or_else(
                     || "el".to_string(),
-                    |fname| {
-                        fname
-                            .trim_end_matches(".png")
-                            .trim_end_matches(".gif")
-                            .to_lowercase()
-                    },
+                    |fname| fname.trim_end_matches(".png").trim_end_matches(".gif").to_lowercase(),
                 );
 
             if !matches_preferred_language(&lang_code, request.languages.as_deref()) {
@@ -197,10 +168,7 @@ impl SubtitleProvider for Subs4SeriesProvider {
 
             let id = format!(
                 "subs4series-{}",
-                href.trim_end_matches('/')
-                    .rsplit('/')
-                    .next()
-                    .unwrap_or(&version)
+                href.trim_end_matches('/').rsplit('/').next().unwrap_or(&version)
             );
 
             results.push(SubtitleSearchResult {
@@ -222,10 +190,7 @@ impl SubtitleProvider for Subs4SeriesProvider {
         Ok(results)
     }
 
-    async fn download(
-        &self,
-        request: &SubtitleDownloadRequest,
-    ) -> Result<DownloadedSubtitle, String> {
+    async fn download(&self, request: &SubtitleDownloadRequest) -> Result<DownloadedSubtitle, String> {
         let download_url = request
             .download_path
             .as_deref()
@@ -243,17 +208,13 @@ impl SubtitleProvider for Subs4SeriesProvider {
             return Err(format!("subs4series GET failed: {}", resp.status()));
         }
 
-        let html = resp
-            .text()
-            .await
-            .map_err(|e| format!("subs4series read error: {e}"))?;
+        let html = resp.text().await.map_err(|e| format!("subs4series read error: {e}"))?;
 
         let post_url = {
             let document = Html::parse_document(&html);
-            let link_sel = Selector::parse("a.style55ws")
-                .map_err(|e| format!("subs4series selector error: {e}"))?;
-            let form_sel = Selector::parse("form[method=\"post\"]")
-                .map_err(|e| format!("subs4series selector error: {e}"))?;
+            let link_sel = Selector::parse("a.style55ws").map_err(|e| format!("subs4series selector error: {e}"))?;
+            let form_sel =
+                Selector::parse("form[method=\"post\"]").map_err(|e| format!("subs4series selector error: {e}"))?;
 
             let target = if let Some(a) = document.select(&link_sel).next() {
                 a.value().attr("href").unwrap_or("").to_string()
@@ -286,12 +247,6 @@ impl SubtitleProvider for Subs4SeriesProvider {
             .await
             .map_err(|e| format!("subs4series read content error: {e}"))?;
 
-        extract_archive(
-            &content,
-            "subtitle.zip",
-            &request.language,
-            &self.staging_root,
-        )
-        .await
+        extract_archive(&content, "subtitle.zip", &request.language, &self.staging_root).await
     }
 }

@@ -149,21 +149,14 @@ pub fn matches_preferred_language(language: &str, preferred_languages: Option<&[
     if preferred_languages.is_empty() {
         return true;
     }
-    if preferred_languages
-        .iter()
-        .any(|preferred| preferred == language)
-    {
+    if preferred_languages.iter().any(|preferred| preferred == language) {
         return true;
     }
     if language == "zh" {
-        return preferred_languages
-            .iter()
-            .any(|preferred| preferred.starts_with("zh"));
+        return preferred_languages.iter().any(|preferred| preferred.starts_with("zh"));
     }
     if language.starts_with("zh-") {
-        return preferred_languages
-            .iter()
-            .any(|preferred| preferred == "zh");
+        return preferred_languages.iter().any(|preferred| preferred == "zh");
     }
     false
 }
@@ -198,11 +191,7 @@ pub fn score_subtitle_name(name: &str, format: &str, preferred_language: &str) -
         if lower.contains("kor") || name.contains('韩') || name.contains('韓') {
             score += 40;
         }
-    } else if lower.contains("chs")
-        || lower.contains("cht")
-        || name.contains("双语")
-        || name.contains("雙語")
-    {
+    } else if lower.contains("chs") || lower.contains("cht") || name.contains("双语") || name.contains("雙語") {
         score += 20;
     }
 

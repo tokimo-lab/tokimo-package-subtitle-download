@@ -11,7 +11,8 @@ use crate::models::{
 };
 
 const KTUVIT_BASE: &str = "https://www.ktuvit.me/";
-const USER_AGENT: &str = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
+const USER_AGENT: &str =
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
 
 pub struct KtuvitProvider {
     #[allow(dead_code)]
@@ -66,21 +67,16 @@ async fn ktuvit_login(email: &str, password: &str) -> Result<reqwest::Client, St
         return Err(format!("ktuvit login failed: {}", resp.status()));
     }
 
-    let json_text = resp
-        .text()
-        .await
-        .map_err(|e| format!("ktuvit login read error: {e}"))?;
+    let json_text = resp.text().await.map_err(|e| format!("ktuvit login read error: {e}"))?;
 
     // Response: {"d": "{\"IsSuccess\":true,...}"}
-    let outer: serde_json::Value = serde_json::from_str(&json_text)
-        .map_err(|e| format!("ktuvit login outer JSON parse error: {e}"))?;
+    let outer: serde_json::Value =
+        serde_json::from_str(&json_text).map_err(|e| format!("ktuvit login outer JSON parse error: {e}"))?;
 
-    let inner_str = outer["d"]
-        .as_str()
-        .ok_or("ktuvit login: missing 'd' field")?;
+    let inner_str = outer["d"].as_str().ok_or("ktuvit login: missing 'd' field")?;
 
-    let inner: serde_json::Value = serde_json::from_str(inner_str)
-        .map_err(|e| format!("ktuvit login inner JSON parse error: {e}"))?;
+    let inner: serde_json::Value =
+        serde_json::from_str(inner_str).map_err(|e| format!("ktuvit login inner JSON parse error: {e}"))?;
 
     if !inner["IsSuccess"].as_bool().unwrap_or(false) {
         return Err("ktuvit login: IsSuccess is false".into());
@@ -95,14 +91,9 @@ impl SubtitleProvider for KtuvitProvider {
         "ktuvit"
     }
 
-    async fn search(
-        &self,
-        request: &SubtitleSearchRequest,
-    ) -> Result<Vec<SubtitleSearchResult>, String> {
-        let email =
-            std::env::var("KTUVIT_USER").map_err(|_| "ktuvit: KTUVIT_USER env var not set")?;
-        let password =
-            std::env::var("KTUVIT_PASS").map_err(|_| "ktuvit: KTUVIT_PASS env var not set")?;
+    async fn search(&self, request: &SubtitleSearchRequest) -> Result<Vec<SubtitleSearchResult>, String> {
+        let email = std::env::var("KTUVIT_USER").map_err(|_| "ktuvit: KTUVIT_USER env var not set")?;
+        let password = std::env::var("KTUVIT_PASS").map_err(|_| "ktuvit: KTUVIT_PASS env var not set")?;
 
         let query = request.query.as_deref().ok_or("ktuvit requires query")?;
 
@@ -150,17 +141,13 @@ impl SubtitleProvider for KtuvitProvider {
             .await
             .map_err(|e| format!("ktuvit search read error: {e}"))?;
 
-        let outer: serde_json::Value = serde_json::from_str(&search_text)
-            .map_err(|e| format!("ktuvit search outer JSON parse error: {e}"))?;
-        let inner_str = outer["d"]
-            .as_str()
-            .ok_or("ktuvit search: missing 'd' field")?;
-        let inner: serde_json::Value = serde_json::from_str(inner_str)
-            .map_err(|e| format!("ktuvit search inner JSON parse error: {e}"))?;
+        let outer: serde_json::Value =
+            serde_json::from_str(&search_text).map_err(|e| format!("ktuvit search outer JSON parse error: {e}"))?;
+        let inner_str = outer["d"].as_str().ok_or("ktuvit search: missing 'd' field")?;
+        let inner: serde_json::Value =
+            serde_json::from_str(inner_str).map_err(|e| format!("ktuvit search inner JSON parse error: {e}"))?;
 
-        let films = inner["Films"]
-            .as_array()
-            .ok_or("ktuvit search: no Films array")?;
+        let films = inner["Films"].as_array().ok_or("ktuvit search: no Films array")?;
 
         // Match by IMDB ID if provided, otherwise take first result
         let ktuvit_id = if let Some(imdb_id) = &request.imdb_id {
@@ -174,15 +161,9 @@ impl SubtitleProvider for KtuvitProvider {
                         None
                     }
                 })
-                .or_else(|| {
-                    films
-                        .first()
-                        .and_then(|f| f["ID"].as_str().map(ToString::to_string))
-                })
+                .or_else(|| films.first().and_then(|f| f["ID"].as_str().map(ToString::to_string)))
         } else {
-            films
-                .first()
-                .and_then(|f| f["ID"].as_str().map(ToString::to_string))
+            films.first().and_then(|f| f["ID"].as_str().map(ToString::to_string))
         }
         .ok_or("ktuvit: no matching film found")?;
 
@@ -222,12 +203,9 @@ impl SubtitleProvider for KtuvitProvider {
 
         if is_tv {
             // TV: parse tr rows, column 0=release, column 5 has input[data-sub-id]
-            let tr_sel =
-                Selector::parse("tbody > tr").map_err(|e| format!("ktuvit selector error: {e}"))?;
-            let td_sel =
-                Selector::parse("td").map_err(|e| format!("ktuvit selector error: {e}"))?;
-            let input_sel = Selector::parse("input[data-sub-id]")
-                .map_err(|e| format!("ktuvit selector error: {e}"))?;
+            let tr_sel = Selector::parse("tbody > tr").map_err(|e| format!("ktuvit selector error: {e}"))?;
+            let td_sel = Selector::parse("td").map_err(|e| format!("ktuvit selector error: {e}"))?;
+            let input_sel = Selector::parse("input[data-sub-id]").map_err(|e| format!("ktuvit selector error: {e}"))?;
 
             for row in doc.select(&tr_sel) {
                 let tds: Vec<_> = row.select(&td_sel).collect();
@@ -264,12 +242,10 @@ impl SubtitleProvider for KtuvitProvider {
             }
         } else {
             // Movie: table#subtitlesList tbody > tr, column 5 has a[data-subtitle-id]
-            let tr_sel = Selector::parse("table#subtitlesList tbody > tr")
-                .map_err(|e| format!("ktuvit selector error: {e}"))?;
-            let td_sel =
-                Selector::parse("td").map_err(|e| format!("ktuvit selector error: {e}"))?;
-            let a_sel = Selector::parse("a[data-subtitle-id]")
-                .map_err(|e| format!("ktuvit selector error: {e}"))?;
+            let tr_sel =
+                Selector::parse("table#subtitlesList tbody > tr").map_err(|e| format!("ktuvit selector error: {e}"))?;
+            let td_sel = Selector::parse("td").map_err(|e| format!("ktuvit selector error: {e}"))?;
+            let a_sel = Selector::parse("a[data-subtitle-id]").map_err(|e| format!("ktuvit selector error: {e}"))?;
 
             for row in doc.select(&tr_sel) {
                 let tds: Vec<_> = row.select(&td_sel).collect();
@@ -309,14 +285,9 @@ impl SubtitleProvider for KtuvitProvider {
         Ok(results)
     }
 
-    async fn download(
-        &self,
-        request: &SubtitleDownloadRequest,
-    ) -> Result<DownloadedSubtitle, String> {
-        let email =
-            std::env::var("KTUVIT_USER").map_err(|_| "ktuvit: KTUVIT_USER env var not set")?;
-        let password =
-            std::env::var("KTUVIT_PASS").map_err(|_| "ktuvit: KTUVIT_PASS env var not set")?;
+    async fn download(&self, request: &SubtitleDownloadRequest) -> Result<DownloadedSubtitle, String> {
+        let email = std::env::var("KTUVIT_USER").map_err(|_| "ktuvit: KTUVIT_USER env var not set")?;
+        let password = std::env::var("KTUVIT_PASS").map_err(|_| "ktuvit: KTUVIT_PASS env var not set")?;
 
         let download_path = request
             .download_path
@@ -354,10 +325,7 @@ impl SubtitleProvider for KtuvitProvider {
             .map_err(|e| format!("ktuvit download request failed: {e}"))?;
 
         if !req_resp.status().is_success() {
-            return Err(format!(
-                "ktuvit download request failed: {}",
-                req_resp.status()
-            ));
+            return Err(format!("ktuvit download request failed: {}", req_resp.status()));
         }
 
         let req_text = req_resp
@@ -365,21 +333,18 @@ impl SubtitleProvider for KtuvitProvider {
             .await
             .map_err(|e| format!("ktuvit download read error: {e}"))?;
 
-        let outer: serde_json::Value = serde_json::from_str(&req_text)
-            .map_err(|e| format!("ktuvit download outer JSON parse error: {e}"))?;
-        let inner_str = outer["d"]
-            .as_str()
-            .ok_or("ktuvit download: missing 'd' field")?;
-        let inner: serde_json::Value = serde_json::from_str(inner_str)
-            .map_err(|e| format!("ktuvit download inner JSON parse error: {e}"))?;
+        let outer: serde_json::Value =
+            serde_json::from_str(&req_text).map_err(|e| format!("ktuvit download outer JSON parse error: {e}"))?;
+        let inner_str = outer["d"].as_str().ok_or("ktuvit download: missing 'd' field")?;
+        let inner: serde_json::Value =
+            serde_json::from_str(inner_str).map_err(|e| format!("ktuvit download inner JSON parse error: {e}"))?;
 
         let identifier = inner["DownloadIdentifier"]
             .as_str()
             .ok_or("ktuvit download: missing DownloadIdentifier")?
             .to_string();
 
-        let file_url =
-            format!("{KTUVIT_BASE}Services/DownloadFile.ashx?DownloadIdentifier={identifier}");
+        let file_url = format!("{KTUVIT_BASE}Services/DownloadFile.ashx?DownloadIdentifier={identifier}");
 
         let file_resp = client
             .get(&file_url)
@@ -388,10 +353,7 @@ impl SubtitleProvider for KtuvitProvider {
             .map_err(|e| format!("ktuvit file download failed: {e}"))?;
 
         if !file_resp.status().is_success() {
-            return Err(format!(
-                "ktuvit file download failed: {}",
-                file_resp.status()
-            ));
+            return Err(format!("ktuvit file download failed: {}", file_resp.status()));
         }
 
         let content = file_resp
@@ -399,10 +361,7 @@ impl SubtitleProvider for KtuvitProvider {
             .await
             .map_err(|e| format!("ktuvit read file content error: {e}"))?;
 
-        let name = request
-            .name
-            .clone()
-            .unwrap_or_else(|| "subtitle.srt".to_string());
+        let name = request.name.clone().unwrap_or_else(|| "subtitle.srt".to_string());
 
         Ok(DownloadedSubtitle {
             name,

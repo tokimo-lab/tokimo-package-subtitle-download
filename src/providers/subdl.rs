@@ -5,8 +5,7 @@ use std::path::PathBuf;
 use super::SubtitleProvider;
 use crate::archive::extract_archive;
 use crate::models::{
-    DownloadedSubtitle, SubtitleDownloadRequest, SubtitleSearchRequest, SubtitleSearchResult,
-    normalize_format,
+    DownloadedSubtitle, SubtitleDownloadRequest, SubtitleSearchRequest, SubtitleSearchResult, normalize_format,
 };
 
 const SUBDL_API_BASE: &str = "https://api.subdl.com/api/v1";
@@ -128,10 +127,7 @@ impl SubdlProvider {
     pub fn new(api_key: Option<String>) -> Self {
         let api_key = api_key.unwrap_or_default();
         let staging_root = std::env::temp_dir();
-        Self {
-            api_key,
-            staging_root,
-        }
+        Self { api_key, staging_root }
     }
 
     #[must_use]
@@ -154,10 +150,7 @@ impl SubtitleProvider for SubdlProvider {
         "subdl"
     }
 
-    async fn search(
-        &self,
-        request: &SubtitleSearchRequest,
-    ) -> Result<Vec<SubtitleSearchResult>, String> {
+    async fn search(&self, request: &SubtitleSearchRequest) -> Result<Vec<SubtitleSearchResult>, String> {
         let client = Self::build_client()?;
 
         // Build language list
@@ -227,8 +220,7 @@ impl SubtitleProvider for SubdlProvider {
             .map_err(|e| format!("解析 SubDL 搜索结果失败: {e}"))?;
 
         // Check for API-level errors
-        let api_ok =
-            search_response.status.unwrap_or(true) && search_response.success.unwrap_or(true);
+        let api_ok = search_response.status.unwrap_or(true) && search_response.success.unwrap_or(true);
         if !api_ok {
             if let Some(error_msg) = &search_response.error {
                 let lower = error_msg.to_ascii_lowercase();
@@ -291,14 +283,8 @@ impl SubtitleProvider for SubdlProvider {
         Ok(results)
     }
 
-    async fn download(
-        &self,
-        request: &SubtitleDownloadRequest,
-    ) -> Result<DownloadedSubtitle, String> {
-        let download_link = request
-            .download_path
-            .as_deref()
-            .ok_or("SubDL 下载缺少 download_path")?;
+    async fn download(&self, request: &SubtitleDownloadRequest) -> Result<DownloadedSubtitle, String> {
+        let download_link = request.download_path.as_deref().ok_or("SubDL 下载缺少 download_path")?;
 
         // Build full URL: if it already starts with http use as-is, else prepend base
         let url = if download_link.starts_with("http") {
@@ -343,13 +329,7 @@ impl SubtitleProvider for SubdlProvider {
             .filter(|s| !s.is_empty())
             .unwrap_or("subtitle.zip");
 
-        extract_archive(
-            &content,
-            archive_name,
-            &request.language,
-            &self.staging_root,
-        )
-        .await
+        extract_archive(&content, archive_name, &request.language, &self.staging_root).await
     }
 }
 
@@ -384,8 +364,7 @@ impl SubdlProvider {
             .await
             .map_err(|e| format!("解析 SubDL TMDB fallback 结果失败: {e}"))?;
 
-        let api_ok =
-            search_response.status.unwrap_or(true) && search_response.success.unwrap_or(true);
+        let api_ok = search_response.status.unwrap_or(true) && search_response.success.unwrap_or(true);
         if !api_ok {
             return Ok(vec![]);
         }

@@ -7,12 +7,13 @@ use scraper::{Html, Selector};
 use super::SubtitleProvider;
 use crate::archive::extract_archive;
 use crate::models::{
-    DownloadedSubtitle, SubtitleDownloadRequest, SubtitleSearchRequest, SubtitleSearchResult,
-    normalize_format, normalize_language,
+    DownloadedSubtitle, SubtitleDownloadRequest, SubtitleSearchRequest, SubtitleSearchResult, normalize_format,
+    normalize_language,
 };
 
 const ZIMUKU_BASE: &str = "https://zimuku.cn";
-const ZIMUKU_UA: &str = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
+const ZIMUKU_UA: &str =
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
 
 fn build_client() -> Result<reqwest::Client, String> {
     reqwest::Client::builder()
@@ -39,10 +40,7 @@ impl SubtitleProvider for ZimukuProvider {
         "zimuku"
     }
 
-    async fn search(
-        &self,
-        request: &SubtitleSearchRequest,
-    ) -> Result<Vec<SubtitleSearchResult>, String> {
+    async fn search(&self, request: &SubtitleSearchRequest) -> Result<Vec<SubtitleSearchResult>, String> {
         let query = request.query.clone().unwrap_or_default();
         if query.trim().is_empty() {
             return Err("字幕库搜索需要提供 query".into());
@@ -62,28 +60,16 @@ impl SubtitleProvider for ZimukuProvider {
             .map_err(|e| format!("字幕库搜索失败: {e}"))?;
 
         if !response.status().is_success() {
-            return Err(format!(
-                "字幕库搜索失败: HTTP {}",
-                response.status().as_u16()
-            ));
+            return Err(format!("字幕库搜索失败: HTTP {}", response.status().as_u16()));
         }
 
-        let html = response
-            .text()
-            .await
-            .map_err(|e| format!("读取字幕库响应失败: {e}"))?;
+        let html = response.text().await.map_err(|e| format!("读取字幕库响应失败: {e}"))?;
 
         parse_zimuku_search_results(&html, &query)
     }
 
-    async fn download(
-        &self,
-        request: &SubtitleDownloadRequest,
-    ) -> Result<DownloadedSubtitle, String> {
-        let detail_url = request
-            .detail_path
-            .as_deref()
-            .ok_or("字幕库下载缺少详情页地址")?;
+    async fn download(&self, request: &SubtitleDownloadRequest) -> Result<DownloadedSubtitle, String> {
+        let detail_url = request.detail_path.as_deref().ok_or("字幕库下载缺少详情页地址")?;
 
         let client = build_client()?;
 
@@ -117,10 +103,7 @@ impl SubtitleProvider for ZimukuProvider {
             .map_err(|e| format!("下载字幕库字幕失败: {e}"))?;
 
         if !dl_response.status().is_success() {
-            return Err(format!(
-                "下载字幕库字幕失败: HTTP {}",
-                dl_response.status().as_u16()
-            ));
+            return Err(format!("下载字幕库字幕失败: HTTP {}", dl_response.status().as_u16()));
         }
 
         let file_name = dl_response
@@ -128,8 +111,7 @@ impl SubtitleProvider for ZimukuProvider {
             .get("content-disposition")
             .and_then(|v| v.to_str().ok())
             .and_then(|v| {
-                let re =
-                    Regex::new(r#"filename[^;=\n]*=(?:'([^']*)'|"([^"]*)"|([^;\n]*))"#).ok()?;
+                let re = Regex::new(r#"filename[^;=\n]*=(?:'([^']*)'|"([^"]*)"|([^;\n]*))"#).ok()?;
                 re.captures(v)
                     .and_then(|c| c.get(1).or_else(|| c.get(2)).or_else(|| c.get(3)))
                     .map(|m| m.as_str().trim().to_string())
@@ -153,10 +135,7 @@ impl SubtitleProvider for ZimukuProvider {
     }
 }
 
-fn parse_zimuku_search_results(
-    html: &str,
-    query: &str,
-) -> Result<Vec<SubtitleSearchResult>, String> {
+fn parse_zimuku_search_results(html: &str, query: &str) -> Result<Vec<SubtitleSearchResult>, String> {
     let document = Html::parse_document(html);
     let mut results = Vec::new();
 
@@ -164,11 +143,11 @@ fn parse_zimuku_search_results(
         .or_else(|_| Selector::parse(".subitem"))
         .map_err(|e| format!("解析字幕库选择器失败: {e}"))?;
 
-    let title_sel = Selector::parse("a.title, .title a, h2 a, h3 a")
-        .map_err(|e| format!("解析字幕库标题选择器失败: {e}"))?;
+    let title_sel =
+        Selector::parse("a.title, .title a, h2 a, h3 a").map_err(|e| format!("解析字幕库标题选择器失败: {e}"))?;
 
-    let lang_sel = Selector::parse(".other span, .label, .type span")
-        .map_err(|e| format!("解析字幕库语言选择器失败: {e}"))?;
+    let lang_sel =
+        Selector::parse(".other span, .label, .type span").map_err(|e| format!("解析字幕库语言选择器失败: {e}"))?;
 
     let id_re = Regex::new(r"/detail/(\d+)").map_err(|e| format!("regex failed: {e}"))?;
     let dl_re = Regex::new(r"(\d+)次").map_err(|e| format!("regex failed: {e}"))?;
@@ -193,10 +172,7 @@ fn parse_zimuku_search_results(
         }
 
         // Collect language labels
-        let lang_texts: Vec<String> = item
-            .select(&lang_sel)
-            .map(|e| e.text().collect::<String>())
-            .collect();
+        let lang_texts: Vec<String> = item.select(&lang_sel).map(|e| e.text().collect::<String>()).collect();
         let combined_lang = lang_texts.join(" ");
         let language = normalize_language(&combined_lang);
         let language_name = if language.starts_with("zh-CN") {

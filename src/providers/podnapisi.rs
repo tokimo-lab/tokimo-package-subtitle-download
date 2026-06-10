@@ -2,9 +2,7 @@ use async_trait::async_trait;
 use serde::Deserialize;
 
 use super::SubtitleProvider;
-use crate::models::{
-    DownloadedSubtitle, SubtitleDownloadRequest, SubtitleSearchRequest, SubtitleSearchResult,
-};
+use crate::models::{DownloadedSubtitle, SubtitleDownloadRequest, SubtitleSearchRequest, SubtitleSearchResult};
 
 const PODNAPISI_API: &str = "https://www.podnapisi.net/subtitles/search/old";
 
@@ -84,10 +82,7 @@ impl SubtitleProvider for PodnapisiProvider {
         "podnapisi"
     }
 
-    async fn search(
-        &self,
-        request: &SubtitleSearchRequest,
-    ) -> Result<Vec<SubtitleSearchResult>, String> {
+    async fn search(&self, request: &SubtitleSearchRequest) -> Result<Vec<SubtitleSearchResult>, String> {
         let query = request.query.clone().unwrap_or_default();
         if query.trim().is_empty() {
             return Err("Podnapisi 搜索需要提供 query".into());
@@ -163,10 +158,7 @@ impl SubtitleProvider for PodnapisiProvider {
                 });
                 SubtitleSearchResult {
                     id: sub.id.clone(),
-                    name: sub
-                        .release
-                        .clone()
-                        .unwrap_or_else(|| format!("subtitle_{}", sub.id)),
+                    name: sub.release.clone().unwrap_or_else(|| format!("subtitle_{}", sub.id)),
                     language,
                     language_name,
                     format: "srt".into(),
@@ -174,11 +166,7 @@ impl SubtitleProvider for PodnapisiProvider {
                     detail_path: None,
                     download_path: Some(format!("{}/download", sub.url)),
                     download_count: Some(sub.upload_count),
-                    rating: if sub.rating > 0.0 {
-                        Some(sub.rating)
-                    } else {
-                        None
-                    },
+                    rating: if sub.rating > 0.0 { Some(sub.rating) } else { None },
                     movie_name,
                     release_group: sub.release,
                 }
@@ -188,14 +176,8 @@ impl SubtitleProvider for PodnapisiProvider {
         Ok(results)
     }
 
-    async fn download(
-        &self,
-        request: &SubtitleDownloadRequest,
-    ) -> Result<DownloadedSubtitle, String> {
-        let url = request
-            .download_path
-            .as_deref()
-            .ok_or("Podnapisi 下载缺少 URL")?;
+    async fn download(&self, request: &SubtitleDownloadRequest) -> Result<DownloadedSubtitle, String> {
+        let url = request.download_path.as_deref().ok_or("Podnapisi 下载缺少 URL")?;
 
         let client = reqwest::Client::builder()
             .user_agent("subtitle-aggregator/0.1")
@@ -209,10 +191,7 @@ impl SubtitleProvider for PodnapisiProvider {
             .map_err(|e| format!("Podnapisi 下载失败: {e}"))?;
 
         if !response.status().is_success() {
-            return Err(format!(
-                "Podnapisi 下载失败: HTTP {}",
-                response.status().as_u16()
-            ));
+            return Err(format!("Podnapisi 下载失败: HTTP {}", response.status().as_u16()));
         }
 
         let content = response

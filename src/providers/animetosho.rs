@@ -4,9 +4,7 @@ use std::io::Read;
 use xz2::read::XzDecoder;
 
 use super::SubtitleProvider;
-use crate::models::{
-    DownloadedSubtitle, SubtitleDownloadRequest, SubtitleSearchRequest, SubtitleSearchResult,
-};
+use crate::models::{DownloadedSubtitle, SubtitleDownloadRequest, SubtitleSearchRequest, SubtitleSearchResult};
 
 const FEED_API_URL: &str = "https://feed.animetosho.org/json";
 const STORAGE_DOWNLOAD_BASE: &str = "https://animetosho.org/storage/attach/";
@@ -115,12 +113,7 @@ fn language_name(code: &str) -> &str {
 
 /// Derive the subtitle format from a filename extension.
 fn format_from_filename(name: &str) -> String {
-    match name
-        .rsplit('.')
-        .next()
-        .map(str::to_ascii_lowercase)
-        .as_deref()
-    {
+    match name.rsplit('.').next().map(str::to_ascii_lowercase).as_deref() {
         Some("ass") => "ass".into(),
         Some("ssa") => "ssa".into(),
         Some("vtt") => "vtt".into(),
@@ -151,10 +144,7 @@ impl AnimeToshoProvider {
     }
 
     /// Fetch the list of NZB/torrent entries matching a title query.
-    async fn fetch_entries(
-        client: &reqwest::Client,
-        query: &str,
-    ) -> Result<Vec<EntryItem>, String> {
+    async fn fetch_entries(client: &reqwest::Client, query: &str) -> Result<Vec<EntryItem>, String> {
         let response = client
             .get(FEED_API_URL)
             .query(&[("q", query)])
@@ -163,10 +153,7 @@ impl AnimeToshoProvider {
             .map_err(|e| format!("AnimeTosho search request failed: {e}"))?;
 
         if !response.status().is_success() {
-            return Err(format!(
-                "AnimeTosho search failed: HTTP {}",
-                response.status().as_u16()
-            ));
+            return Err(format!("AnimeTosho search failed: HTTP {}", response.status().as_u16()));
         }
 
         let entries: Vec<EntryItem> = response
@@ -178,10 +165,7 @@ impl AnimeToshoProvider {
     }
 
     /// Fetch subtitle attachments for a single entry (torrent/NZB) by its AnimeTosho ID.
-    async fn fetch_torrent_details(
-        client: &reqwest::Client,
-        entry_id: u64,
-    ) -> Result<TorrentDetails, String> {
+    async fn fetch_torrent_details(client: &reqwest::Client, entry_id: u64) -> Result<TorrentDetails, String> {
         let id_str = entry_id.to_string();
         let response = client
             .get(FEED_API_URL)
@@ -230,10 +214,7 @@ impl SubtitleProvider for AnimeToshoProvider {
         "animetosho"
     }
 
-    async fn search(
-        &self,
-        request: &SubtitleSearchRequest,
-    ) -> Result<Vec<SubtitleSearchResult>, String> {
+    async fn search(&self, request: &SubtitleSearchRequest) -> Result<Vec<SubtitleSearchResult>, String> {
         let query = request
             .query
             .as_deref()
@@ -327,10 +308,7 @@ impl SubtitleProvider for AnimeToshoProvider {
         Ok(results)
     }
 
-    async fn download(
-        &self,
-        request: &SubtitleDownloadRequest,
-    ) -> Result<DownloadedSubtitle, String> {
+    async fn download(&self, request: &SubtitleDownloadRequest) -> Result<DownloadedSubtitle, String> {
         let download_url = request
             .download_path
             .as_deref()
@@ -365,15 +343,8 @@ impl SubtitleProvider for AnimeToshoProvider {
         };
 
         let format = request.format.clone();
-        let name = request
-            .name
-            .clone()
-            .unwrap_or_else(|| format!("subtitle.{format}"));
+        let name = request.name.clone().unwrap_or_else(|| format!("subtitle.{format}"));
 
-        Ok(DownloadedSubtitle {
-            name,
-            format,
-            content,
-        })
+        Ok(DownloadedSubtitle { name, format, content })
     }
 }

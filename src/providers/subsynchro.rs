@@ -5,9 +5,7 @@ use serde::Deserialize;
 
 use super::SubtitleProvider;
 use crate::archive::extract_archive;
-use crate::models::{
-    DownloadedSubtitle, SubtitleDownloadRequest, SubtitleSearchRequest, SubtitleSearchResult,
-};
+use crate::models::{DownloadedSubtitle, SubtitleDownloadRequest, SubtitleSearchRequest, SubtitleSearchResult};
 
 const SERVER_URL: &str = "https://www.subsynchro.com/include/ajax/subMarin.php";
 const PAGE_URL: &str = "https://www.subsynchro.com";
@@ -68,10 +66,7 @@ impl SubtitleProvider for SubsynchroProvider {
         "subsynchro"
     }
 
-    async fn search(
-        &self,
-        request: &SubtitleSearchRequest,
-    ) -> Result<Vec<SubtitleSearchResult>, String> {
+    async fn search(&self, request: &SubtitleSearchRequest) -> Result<Vec<SubtitleSearchResult>, String> {
         let title = request.query.clone().unwrap_or_default();
         if title.trim().is_empty() {
             return Err("subsynchro: search requires a query (movie title)".into());
@@ -112,10 +107,7 @@ impl SubtitleProvider for SubsynchroProvider {
             } else {
                 filename.clone()
             };
-            let movie_name = item
-                .titre
-                .or(item.titre_original)
-                .unwrap_or_else(|| title.clone());
+            let movie_name = item.titre.or(item.titre_original).unwrap_or_else(|| title.clone());
 
             results.push(SubtitleSearchResult {
                 id: format!("subsynchro_{idx}"),
@@ -133,18 +125,11 @@ impl SubtitleProvider for SubsynchroProvider {
             });
         }
 
-        tracing::info!(
-            "subsynchro: found {} results for '{}'",
-            results.len(),
-            title
-        );
+        tracing::info!("subsynchro: found {} results for '{}'", results.len(), title);
         Ok(results)
     }
 
-    async fn download(
-        &self,
-        request: &SubtitleDownloadRequest,
-    ) -> Result<DownloadedSubtitle, String> {
+    async fn download(&self, request: &SubtitleDownloadRequest) -> Result<DownloadedSubtitle, String> {
         let url = request
             .download_path
             .as_deref()
@@ -159,10 +144,7 @@ impl SubtitleProvider for SubsynchroProvider {
             .await
             .map_err(|e| format!("subsynchro: download request: {e}"))?;
         if !resp.status().is_success() {
-            return Err(format!(
-                "subsynchro: download HTTP {}",
-                resp.status().as_u16()
-            ));
+            return Err(format!("subsynchro: download HTTP {}", resp.status().as_u16()));
         }
 
         let bytes = resp

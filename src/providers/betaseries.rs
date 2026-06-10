@@ -5,9 +5,7 @@ use serde::Deserialize;
 
 use super::SubtitleProvider;
 use crate::archive::extract_archive;
-use crate::models::{
-    DownloadedSubtitle, SubtitleDownloadRequest, SubtitleSearchRequest, SubtitleSearchResult,
-};
+use crate::models::{DownloadedSubtitle, SubtitleDownloadRequest, SubtitleSearchRequest, SubtitleSearchResult};
 
 const SERVER_URL: &str = "https://api.betaseries.com/";
 const UA: &str = "Sub-Zero/2";
@@ -72,10 +70,7 @@ impl SubtitleProvider for BetaSeriesProvider {
         "betaseries"
     }
 
-    async fn search(
-        &self,
-        request: &SubtitleSearchRequest,
-    ) -> Result<Vec<SubtitleSearchResult>, String> {
+    async fn search(&self, request: &SubtitleSearchRequest) -> Result<Vec<SubtitleSearchResult>, String> {
         let api_key = get_api_key()?;
         let client = build_client()?;
 
@@ -83,11 +78,7 @@ impl SubtitleProvider for BetaSeriesProvider {
         let tvdb_id = request.imdb_id.as_deref(); // reuse imdb_id field as tvdb_id if present
 
         let endpoint;
-        let mut params: Vec<(&str, String)> = vec![
-            ("key", api_key),
-            ("subtitles", "1".into()),
-            ("v", "3.0".into()),
-        ];
+        let mut params: Vec<(&str, String)> = vec![("key", api_key), ("subtitles", "1".into()), ("v", "3.0".into())];
 
         if let Some(id) = tvdb_id {
             endpoint = format!("{SERVER_URL}episodes/display");
@@ -95,9 +86,7 @@ impl SubtitleProvider for BetaSeriesProvider {
         } else {
             let query = request.query.clone().unwrap_or_default();
             if query.trim().is_empty() {
-                return Err(
-                    "betaseries: search requires either imdb_id (as tvdb_id) or query".into(),
-                );
+                return Err("betaseries: search requires either imdb_id (as tvdb_id) or query".into());
             }
             endpoint = format!("{SERVER_URL}shows/episodes");
             params.push(("title", query));
@@ -184,10 +173,7 @@ impl SubtitleProvider for BetaSeriesProvider {
                 serde_json::Value::String(s) => s.clone(),
                 other => other.to_string(),
             };
-            let file_name = sub
-                .file
-                .clone()
-                .unwrap_or_else(|| format!("betaseries_{sub_id}.srt"));
+            let file_name = sub.file.clone().unwrap_or_else(|| format!("betaseries_{sub_id}.srt"));
             let url = sub.url.clone().unwrap_or_default();
 
             results.push(SubtitleSearchResult {
@@ -210,10 +196,7 @@ impl SubtitleProvider for BetaSeriesProvider {
         Ok(results)
     }
 
-    async fn download(
-        &self,
-        request: &SubtitleDownloadRequest,
-    ) -> Result<DownloadedSubtitle, String> {
+    async fn download(&self, request: &SubtitleDownloadRequest) -> Result<DownloadedSubtitle, String> {
         let url = request
             .download_path
             .as_deref()
@@ -235,10 +218,7 @@ impl SubtitleProvider for BetaSeriesProvider {
             return Err(format!("betaseries: download HTTP {status}"));
         }
 
-        let bytes = resp
-            .bytes()
-            .await
-            .map_err(|e| format!("betaseries: read bytes: {e}"))?;
+        let bytes = resp.bytes().await.map_err(|e| format!("betaseries: read bytes: {e}"))?;
         let filename = url.rsplit('/').next().unwrap_or("subtitle.srt").to_string();
 
         // Check if it's an archive

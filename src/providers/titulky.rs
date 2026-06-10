@@ -10,8 +10,7 @@ use tokio::sync::Mutex;
 use super::SubtitleProvider;
 use crate::archive::extract_archive;
 use crate::models::{
-    DownloadedSubtitle, SubtitleDownloadRequest, SubtitleSearchRequest, SubtitleSearchResult,
-    normalize_format,
+    DownloadedSubtitle, SubtitleDownloadRequest, SubtitleSearchRequest, SubtitleSearchResult, normalize_format,
 };
 
 const SERVER_URL: &str = "https://premium.titulky.com";
@@ -103,10 +102,7 @@ impl TitulkyProvider {
             return Ok(());
         }
 
-        Err(format!(
-            "Titulky: login failed with HTTP {}",
-            resp.status().as_u16()
-        ))
+        Err(format!("Titulky: login failed with HTTP {}", resp.status().as_u16()))
     }
 
     /// Build a URL for the Titulky search page.
@@ -143,9 +139,7 @@ impl TitulkyProvider {
                     .to_string();
 
                 if location.is_empty() {
-                    return Err(format!(
-                        "Titulky: redirect with empty Location from {current_url}"
-                    ));
+                    return Err(format!("Titulky: redirect with empty Location from {current_url}"));
                 }
 
                 // Check for error redirects
@@ -192,10 +186,7 @@ impl SubtitleProvider for TitulkyProvider {
         "titulky"
     }
 
-    async fn search(
-        &self,
-        request: &SubtitleSearchRequest,
-    ) -> Result<Vec<SubtitleSearchResult>, String> {
+    async fn search(&self, request: &SubtitleSearchRequest) -> Result<Vec<SubtitleSearchResult>, String> {
         let imdb_id = request
             .imdb_id
             .as_deref()
@@ -227,16 +218,13 @@ impl SubtitleProvider for TitulkyProvider {
         parse_titulky_results(&html, imdb_id, want_cs, want_sk)
     }
 
-    async fn download(
-        &self,
-        request: &SubtitleDownloadRequest,
-    ) -> Result<DownloadedSubtitle, String> {
+    async fn download(&self, request: &SubtitleDownloadRequest) -> Result<DownloadedSubtitle, String> {
         self.ensure_logged_in().await?;
 
-        let url = request.download_path.as_deref().map_or_else(
-            || format!("{DOWNLOAD_BASE}{}", request.subtitle_id),
-            str::to_string,
-        );
+        let url = request
+            .download_path
+            .as_deref()
+            .map_or_else(|| format!("{DOWNLOAD_BASE}{}", request.subtitle_id), str::to_string);
 
         let resp = self
             .client
@@ -272,10 +260,7 @@ impl SubtitleProvider for TitulkyProvider {
         };
 
         if !resp.status().is_success() {
-            return Err(format!(
-                "Titulky: download failed with HTTP {}",
-                resp.status().as_u16()
-            ));
+            return Err(format!("Titulky: download failed with HTTP {}", resp.status().as_u16()));
         }
 
         let file_name = resp
@@ -283,8 +268,7 @@ impl SubtitleProvider for TitulkyProvider {
             .get("content-disposition")
             .and_then(|v| v.to_str().ok())
             .and_then(|v| {
-                let re = regex::Regex::new(r#"filename[^;=\n]*=(?:'([^']*)'|"([^"]*)"|([^;\n]*))"#)
-                    .ok()?;
+                let re = regex::Regex::new(r#"filename[^;=\n]*=(?:'([^']*)'|"([^"]*)"|([^;\n]*))"#).ok()?;
                 re.captures(v)
                     .and_then(|c| c.get(1).or_else(|| c.get(2)).or_else(|| c.get(3)))
                     .map(|m| m.as_str().trim().to_string())
@@ -318,10 +302,8 @@ fn parse_titulky_results(
     let mut results = Vec::new();
 
     // Container with subtitle rows
-    let form_sel =
-        Selector::parse("form.cloudForm").map_err(|e| format!("Titulky: selector error: {e}"))?;
-    let row_sel =
-        Selector::parse("div.row").map_err(|e| format!("Titulky: selector error: {e}"))?;
+    let form_sel = Selector::parse("form.cloudForm").map_err(|e| format!("Titulky: selector error: {e}"))?;
+    let row_sel = Selector::parse("div.row").map_err(|e| format!("Titulky: selector error: {e}"))?;
     let h5_sel = Selector::parse("h5").map_err(|e| format!("Titulky: selector error: {e}"))?;
     let anchor_sel = Selector::parse("a").map_err(|e| format!("Titulky: selector error: {e}"))?;
 
@@ -335,12 +317,7 @@ fn parse_titulky_results(
     let mut last_ep_num: Option<u32> = None;
 
     for row in container.select(&row_sel) {
-        let classes: Vec<&str> = row
-            .value()
-            .attr("class")
-            .unwrap_or("")
-            .split_whitespace()
-            .collect();
+        let classes: Vec<&str> = row.value().attr("class").unwrap_or("").split_whitespace().collect();
 
         // Episode number row
         if let Some(h5) = row.select(&h5_sel).next() {
@@ -388,10 +365,9 @@ fn parse_titulky_results(
             format!("{SERVER_URL}{}", href.trim_start_matches('.'))
         };
 
-        let sub_id = id_re.captures(&details_link).map_or_else(
-            || format!("titulky_{}", results.len()),
-            |c| c[1].to_string(),
-        );
+        let sub_id = id_re
+            .captures(&details_link)
+            .map_or_else(|| format!("titulky_{}", results.len()), |c| c[1].to_string());
 
         let download_link = format!("{DOWNLOAD_BASE}{sub_id}");
         let release_info = anchor.text().collect::<String>().trim().to_string();

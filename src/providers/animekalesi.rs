@@ -4,12 +4,11 @@ use std::path::PathBuf;
 
 use super::SubtitleProvider;
 use crate::archive::extract_archive;
-use crate::models::{
-    DownloadedSubtitle, SubtitleDownloadRequest, SubtitleSearchRequest, SubtitleSearchResult,
-};
+use crate::models::{DownloadedSubtitle, SubtitleDownloadRequest, SubtitleSearchRequest, SubtitleSearchResult};
 
 const ANIMEKALESI_BASE_URL: &str = "https://www.animekalesi.com";
-const ANIMEKALESI_USER_AGENT: &str = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
+const ANIMEKALESI_USER_AGENT: &str =
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
 
 pub struct AnimekalesiProvider {
     staging_root: PathBuf,
@@ -88,10 +87,7 @@ impl SubtitleProvider for AnimekalesiProvider {
         "animekalesi"
     }
 
-    async fn search(
-        &self,
-        request: &SubtitleSearchRequest,
-    ) -> Result<Vec<SubtitleSearchResult>, String> {
+    async fn search(&self, request: &SubtitleSearchRequest) -> Result<Vec<SubtitleSearchResult>, String> {
         let query = request
             .query
             .as_deref()
@@ -123,10 +119,8 @@ impl SubtitleProvider for AnimekalesiProvider {
 
         let series_url: Option<(String, String)> = {
             let document = Html::parse_document(&html);
-            let td_sel = Selector::parse("td#bolumler")
-                .map_err(|e| format!("AnimeKalesi selector error: {e}"))?;
-            let a_sel =
-                Selector::parse("a").map_err(|e| format!("AnimeKalesi selector error: {e}"))?;
+            let td_sel = Selector::parse("td#bolumler").map_err(|e| format!("AnimeKalesi selector error: {e}"))?;
+            let a_sel = Selector::parse("a").map_err(|e| format!("AnimeKalesi selector error: {e}"))?;
 
             let normalized_query = Self::normalize_title(query.trim());
             let mut found: Option<(String, String)> = None;
@@ -183,10 +177,9 @@ impl SubtitleProvider for AnimekalesiProvider {
 
         let episode_entries: Vec<(String, String)> = {
             let subs_doc = Html::parse_document(&subs_html);
-            let td_indir_sel = Selector::parse("td#ayazi_indir")
-                .map_err(|e| format!("AnimeKalesi selector error: {e}"))?;
-            let a_sel2 = Selector::parse("a[href]")
-                .map_err(|e| format!("AnimeKalesi selector error: {e}"))?;
+            let td_indir_sel =
+                Selector::parse("td#ayazi_indir").map_err(|e| format!("AnimeKalesi selector error: {e}"))?;
+            let a_sel2 = Selector::parse("a[href]").map_err(|e| format!("AnimeKalesi selector error: {e}"))?;
 
             let mut entries = Vec::new();
             for td in subs_doc.select(&td_indir_sel) {
@@ -195,9 +188,7 @@ impl SubtitleProvider for AnimekalesiProvider {
                 };
                 let href = link.value().attr("href").unwrap_or_default().to_string();
                 let title = link.value().attr("title").unwrap_or_default().to_string();
-                if href.contains("indir_bolum-")
-                    && title.contains("B\u{00f6}l\u{00fc}m T\u{00fc}rk\u{00e7}e Altyaz")
-                {
+                if href.contains("indir_bolum-") && title.contains("B\u{00f6}l\u{00fc}m T\u{00fc}rk\u{00e7}e Altyaz") {
                     entries.push((href, title));
                 }
             }
@@ -235,10 +226,7 @@ impl SubtitleProvider for AnimekalesiProvider {
         Ok(results)
     }
 
-    async fn download(
-        &self,
-        request: &SubtitleDownloadRequest,
-    ) -> Result<DownloadedSubtitle, String> {
+    async fn download(&self, request: &SubtitleDownloadRequest) -> Result<DownloadedSubtitle, String> {
         let detail_url = request
             .detail_path
             .as_deref()
@@ -268,8 +256,8 @@ impl SubtitleProvider for AnimekalesiProvider {
 
         let download_url: String = {
             let document = Html::parse_document(&html);
-            let dl_sel = Selector::parse("div#altyazi_indir a[href]")
-                .map_err(|e| format!("AnimeKalesi selector error: {e}"))?;
+            let dl_sel =
+                Selector::parse("div#altyazi_indir a[href]").map_err(|e| format!("AnimeKalesi selector error: {e}"))?;
             let href = document
                 .select(&dl_sel)
                 .next()
@@ -300,12 +288,6 @@ impl SubtitleProvider for AnimekalesiProvider {
             .unwrap_or("subtitle.zip")
             .to_string();
 
-        extract_archive(
-            &content,
-            &archive_name,
-            &request.language,
-            &self.staging_root,
-        )
-        .await
+        extract_archive(&content, &archive_name, &request.language, &self.staging_root).await
     }
 }

@@ -3,9 +3,7 @@ use reqwest::header::USER_AGENT;
 use serde::{Deserialize, Serialize};
 
 use super::SubtitleProvider;
-use crate::models::{
-    DownloadedSubtitle, SubtitleDownloadRequest, SubtitleSearchRequest, SubtitleSearchResult,
-};
+use crate::models::{DownloadedSubtitle, SubtitleDownloadRequest, SubtitleSearchRequest, SubtitleSearchResult};
 
 const OS_API_BASE: &str = "https://api.opensubtitles.com/api/v1";
 const OS_USER_AGENT: &str = "subtitle-aggregator v0.1.0";
@@ -126,10 +124,7 @@ impl SubtitleProvider for OpenSubtitlesProvider {
         "opensubtitles"
     }
 
-    async fn search(
-        &self,
-        request: &SubtitleSearchRequest,
-    ) -> Result<Vec<SubtitleSearchResult>, String> {
+    async fn search(&self, request: &SubtitleSearchRequest) -> Result<Vec<SubtitleSearchResult>, String> {
         let client = Self::build_client()?;
 
         let mut params: Vec<(&str, String)> = Vec::new();
@@ -197,21 +192,17 @@ impl SubtitleProvider for OpenSubtitlesProvider {
                     .file_name
                     .clone()
                     .unwrap_or_else(|| format!("subtitle_{}", file.file_id));
-                let format =
-                    crate::models::normalize_format(&file_name).unwrap_or_else(|| "srt".into());
+                let format = crate::models::normalize_format(&file_name).unwrap_or_else(|| "srt".into());
                 let language = from_os_language(&sub.attributes.language);
                 let language_name = from_os_language_name(&sub.attributes.language);
                 let movie_name = sub.attributes.feature_details.as_ref().and_then(|fd| {
-                    fd.movie_name
-                        .clone()
-                        .or_else(|| fd.title.clone())
-                        .map(|name| {
-                            if let Some(year) = fd.year {
-                                format!("{name} ({year})")
-                            } else {
-                                name
-                            }
-                        })
+                    fd.movie_name.clone().or_else(|| fd.title.clone()).map(|name| {
+                        if let Some(year) = fd.year {
+                            format!("{name} ({year})")
+                        } else {
+                            name
+                        }
+                    })
                 });
 
                 Some(SubtitleSearchResult {
@@ -238,10 +229,7 @@ impl SubtitleProvider for OpenSubtitlesProvider {
         Ok(results)
     }
 
-    async fn download(
-        &self,
-        request: &SubtitleDownloadRequest,
-    ) -> Result<DownloadedSubtitle, String> {
+    async fn download(&self, request: &SubtitleDownloadRequest) -> Result<DownloadedSubtitle, String> {
         let client = Self::build_client()?;
 
         let file_id: u64 = request
@@ -274,10 +262,7 @@ impl SubtitleProvider for OpenSubtitlesProvider {
             .await
             .map_err(|error| format!("解析 OpenSubtitles 下载响应失败: {error}"))?;
 
-        tracing::info!(
-            "OpenSubtitles 下载链接获取成功, 剩余配额: {}",
-            dl_response.remaining
-        );
+        tracing::info!("OpenSubtitles 下载链接获取成功, 剩余配额: {}", dl_response.remaining);
 
         // Download the actual file
         let file_response = client
@@ -298,8 +283,7 @@ impl SubtitleProvider for OpenSubtitlesProvider {
             .await
             .map_err(|error| format!("读取 OpenSubtitles 字幕内容失败: {error}"))?;
 
-        let format = crate::models::normalize_format(&dl_response.file_name)
-            .unwrap_or_else(|| request.format.clone());
+        let format = crate::models::normalize_format(&dl_response.file_name).unwrap_or_else(|| request.format.clone());
 
         Ok(DownloadedSubtitle {
             name: dl_response.file_name,

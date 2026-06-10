@@ -4,12 +4,11 @@ use std::path::PathBuf;
 
 use super::SubtitleProvider;
 use crate::archive::extract_archive;
-use crate::models::{
-    DownloadedSubtitle, SubtitleDownloadRequest, SubtitleSearchRequest, SubtitleSearchResult,
-};
+use crate::models::{DownloadedSubtitle, SubtitleDownloadRequest, SubtitleSearchRequest, SubtitleSearchResult};
 
 const SUBSSABBZ_BASE_URL: &str = "http://subs.sab.bz";
-const SUBSSABBZ_USER_AGENT: &str = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
+const SUBSSABBZ_USER_AGENT: &str =
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
 
 pub struct SubssabbzProvider {
     staging_root: PathBuf,
@@ -48,10 +47,7 @@ impl SubtitleProvider for SubssabbzProvider {
         "subssabbz"
     }
 
-    async fn search(
-        &self,
-        request: &SubtitleSearchRequest,
-    ) -> Result<Vec<SubtitleSearchResult>, String> {
+    async fn search(&self, request: &SubtitleSearchRequest) -> Result<Vec<SubtitleSearchResult>, String> {
         let query = request
             .query
             .as_deref()
@@ -99,10 +95,8 @@ impl SubtitleProvider for SubssabbzProvider {
             .map_err(|e| format!("Failed to read SubsSabBz response: {e}"))?;
 
         let document = Html::parse_document(&html);
-        let row_sel =
-            Selector::parse("tr.subs-row").map_err(|e| format!("SubsSabBz selector error: {e}"))?;
-        let td_c2_sel =
-            Selector::parse("td.c2field").map_err(|e| format!("SubsSabBz selector error: {e}"))?;
+        let row_sel = Selector::parse("tr.subs-row").map_err(|e| format!("SubsSabBz selector error: {e}"))?;
+        let td_c2_sel = Selector::parse("td.c2field").map_err(|e| format!("SubsSabBz selector error: {e}"))?;
         let a_sel = Selector::parse("a").map_err(|e| format!("SubsSabBz selector error: {e}"))?;
         let td_sel = Selector::parse("td").map_err(|e| format!("SubsSabBz selector error: {e}"))?;
 
@@ -167,10 +161,7 @@ impl SubtitleProvider for SubssabbzProvider {
         Ok(results)
     }
 
-    async fn download(
-        &self,
-        request: &SubtitleDownloadRequest,
-    ) -> Result<DownloadedSubtitle, String> {
+    async fn download(&self, request: &SubtitleDownloadRequest) -> Result<DownloadedSubtitle, String> {
         let download_url = request
             .download_path
             .as_deref()
@@ -202,12 +193,6 @@ impl SubtitleProvider for SubssabbzProvider {
             .filter(|s| !s.is_empty())
             .unwrap_or("subtitle.zip");
 
-        extract_archive(
-            &content,
-            archive_name,
-            &request.language,
-            &self.staging_root,
-        )
-        .await
+        extract_archive(&content, archive_name, &request.language, &self.staging_root).await
     }
 }
