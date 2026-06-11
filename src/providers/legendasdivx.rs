@@ -21,10 +21,10 @@ fn build_client(cookies: bool) -> Result<reqwest::Client, String> {
                 "Accept",
                 "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8"
                     .parse()
-                    .unwrap(),
+                    .expect("constant header value is valid"),
             );
-            h.insert("Origin", SITE.parse().unwrap());
-            h.insert("Referer", SITE.parse().unwrap());
+            h.insert("Origin", SITE.parse().expect("constant URL is valid header value"));
+            h.insert("Referer", SITE.parse().expect("constant URL is valid header value"));
             h
         })
         .build()

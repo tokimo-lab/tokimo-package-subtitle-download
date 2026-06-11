@@ -292,7 +292,7 @@ mod urlencoding {
                     out.push(b as char);
                 }
                 b' ' => out.push('+'),
-                other => write!(out, "%{other:02X}").unwrap(),
+                other => write!(out, "%{other:02X}").expect("write to String is infallible"),
             }
         }
         out

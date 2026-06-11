@@ -232,7 +232,7 @@ impl SubtitleProvider for SubdlProvider {
                 if has_imdb && has_tmdb {
                     tracing::debug!("SubDL: IMDB 搜索失败，尝试 TMDB fallback");
                     return self
-                        .search_by_tmdb(&client, &url, &params, request.tmdb_id.as_deref().unwrap())
+                        .search_by_tmdb(&client, &url, &params, request.tmdb_id.as_deref().expect("has_tmdb checked above"))
                         .await;
                 }
                 return Err(format!("SubDL API 错误: {error_msg}"));

@@ -210,7 +210,7 @@ fn parse_subsro_results(
 
         // Release info from p span with blue color
         let release_info = item
-            .select(&Selector::parse("p span").unwrap_or_else(|_| Selector::parse("p").unwrap()))
+            .select(&Selector::parse("p span").unwrap_or_else(|_| Selector::parse("p").expect("valid selector")))
             .find(|el| {
                 el.value()
                     .attr("style")
@@ -218,7 +218,7 @@ fn parse_subsro_results(
             })
             .map(|el| el.text().collect::<String>())
             .or_else(|| {
-                item.select(&Selector::parse("p").unwrap())
+                item.select(&Selector::parse("p").expect("valid selector"))
                     .next()
                     .map(|el| el.text().collect::<String>())
             });

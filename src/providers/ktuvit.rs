@@ -177,7 +177,7 @@ impl SubtitleProvider for KtuvitProvider {
 
         // Get subtitle list
         let subs_html = if is_tv {
-            let (season, episode) = se_opt.unwrap();
+            let (season, episode) = se_opt.expect("is_tv checked above");
             let subs_url = format!(
                 "{KTUVIT_BASE}Services/GetModuleAjax.ashx?moduleName=SubtitlesList&SeriesID={ktuvit_id}&Season={season}&Episode={episode}"
             );

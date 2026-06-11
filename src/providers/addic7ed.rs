@@ -396,7 +396,7 @@ fn parse_movie_rows(
         }
 
         // Extract version from the table (first meaningful text in a bold/version cell)
-        let version_sel = Selector::parse("b").unwrap();
+        let version_sel = Selector::parse("b").expect("valid selector");
         let version_text = table
             .select(&version_sel)
             .next()

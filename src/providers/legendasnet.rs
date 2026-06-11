@@ -170,7 +170,7 @@ impl SubtitleProvider for LegendasNetProvider {
                 let mut h = reqwest::header::HeaderMap::new();
                 h.insert(
                     reqwest::header::AUTHORIZATION,
-                    format!("Bearer {token}").parse().unwrap(),
+                    format!("Bearer {token}").parse().expect("Bearer token is valid header value"),
                 );
                 h
             })

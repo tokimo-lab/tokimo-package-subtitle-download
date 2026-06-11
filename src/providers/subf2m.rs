@@ -61,15 +61,15 @@ fn build_client() -> Result<reqwest::Client, String> {
         .user_agent(USER_AGENT)
         .default_headers({
             let mut headers = reqwest::header::HeaderMap::new();
-            headers.insert("authority", "subf2m.co".parse().unwrap());
-            headers.insert("referer", "https://subf2m.co".parse().unwrap());
+            headers.insert("authority", "subf2m.co".parse().expect("constant header value"));
+            headers.insert("referer", "https://subf2m.co".parse().expect("constant header value"));
             headers.insert(
                 "accept",
                 "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
                     .parse()
-                    .unwrap(),
+                    .expect("constant header value"),
             );
-            headers.insert("accept-language", "en-US,en;q=0.9".parse().unwrap());
+            headers.insert("accept-language", "en-US,en;q=0.9".parse().expect("constant header value"));
             headers
         })
         .build()
