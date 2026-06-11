@@ -1,4 +1,5 @@
 use std::path::PathBuf;
+use std::sync::LazyLock;
 
 use async_trait::async_trait;
 use regex::Regex;
@@ -14,6 +15,11 @@ use crate::models::{
 const SUBS4SERIES_BASE: &str = "https://www.subs4series.com";
 const USER_AGENT: &str =
     "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
+
+static RE_SEASON_EPISODE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"[Ss](\d+)[Ee](\d+)").expect("invalid regex: RE_SEASON_EPISODE"));
+static RE_TITLE_STRIP: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\s*[Ss]\d+[Ee]\d+.*").expect("invalid regex: RE_TITLE_STRIP"));
 
 pub struct Subs4SeriesProvider {
     staging_root: PathBuf,
@@ -36,8 +42,7 @@ fn build_client() -> Result<reqwest::Client, String> {
 }
 
 fn parse_season_episode(query: &str) -> Option<(u32, u32)> {
-    let re = Regex::new(r"[Ss](\d+)[Ee](\d+)").unwrap();
-    re.captures(query).map(|cap| {
+    RE_SEASON_EPISODE.captures(query).map(|cap| {
         let season = cap[1].parse::<u32>().unwrap_or(1);
         let episode = cap[2].parse::<u32>().unwrap_or(1);
         (season, episode)
@@ -57,8 +62,7 @@ impl SubtitleProvider for Subs4SeriesProvider {
             .ok_or("subs4series: query must contain season/episode pattern (e.g. S01E02)")?;
 
         // Strip S##E## from query for show title search
-        let title_re = Regex::new(r"\s*[Ss]\d+[Ee]\d+.*").unwrap();
-        let show_title = title_re.replace(query, "").trim().to_string();
+        let show_title = RE_TITLE_STRIP.replace(query, "").trim().to_string();
 
         let encoded = url::form_urlencoded::byte_serialize(show_title.as_bytes()).collect::<String>();
         let search_url = format!("{SUBS4SERIES_BASE}/search_report.php?search={encoded}&searchType=1");

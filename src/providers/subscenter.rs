@@ -1,4 +1,5 @@
 use std::path::PathBuf;
+use std::sync::LazyLock;
 
 use async_trait::async_trait;
 use regex::Regex;
@@ -14,6 +15,9 @@ use crate::models::{
 const SUBSCENTER_BASE: &str = "http://www.subscenter.info/he/";
 const USER_AGENT: &str =
     "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
+
+static RE_SEASON_EPISODE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"[Ss](\d+)[Ee](\d+)").expect("invalid regex: RE_SEASON_EPISODE"));
 
 pub struct SubsCenterProvider {
     staging_root: PathBuf,
@@ -37,8 +41,7 @@ fn build_client() -> Result<reqwest::Client, String> {
 }
 
 fn parse_season_episode(query: &str) -> Option<(u32, u32)> {
-    let re = Regex::new(r"[Ss](\d+)[Ee](\d+)").unwrap();
-    re.captures(query).map(|cap| {
+    RE_SEASON_EPISODE.captures(query).map(|cap| {
         let season = cap[1].parse::<u32>().unwrap_or(1);
         let episode = cap[2].parse::<u32>().unwrap_or(1);
         (season, episode)

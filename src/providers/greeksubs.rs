@@ -1,4 +1,5 @@
 use std::path::PathBuf;
+use std::sync::LazyLock;
 
 use async_trait::async_trait;
 use regex::Regex;
@@ -14,6 +15,10 @@ use crate::models::{
 const GREEKSUBS_BASE: &str = "https://greeksubs.net/";
 const USER_AGENT: &str =
     "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
+
+static RE_DOWNLOAD_ME: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"downloadMe\('([^']+)'\)").expect("invalid regex: RE_DOWNLOAD_ME")
+});
 
 pub struct GreekSubsProvider {
     staging_root: PathBuf,
@@ -79,7 +84,6 @@ impl SubtitleProvider for GreekSubsProvider {
         let row_sel = Selector::parse("#elSub > tbody > tr").map_err(|e| format!("greeksubs selector error: {e}"))?;
         let img_sel = Selector::parse("img").map_err(|e| format!("greeksubs selector error: {e}"))?;
 
-        let re_dl = Regex::new(r"downloadMe\('([^']+)'\)").unwrap();
 
         let mut results = Vec::new();
 
@@ -95,7 +99,7 @@ impl SubtitleProvider for GreekSubsProvider {
                 })
                 .unwrap_or("");
 
-            let subtitle_id = match re_dl.captures(onclick) {
+            let subtitle_id = match RE_DOWNLOAD_ME.captures(onclick) {
                 Some(cap) => cap[1].to_string(),
                 None => continue,
             };

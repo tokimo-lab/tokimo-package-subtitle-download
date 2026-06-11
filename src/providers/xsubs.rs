@@ -1,4 +1,5 @@
 use std::path::PathBuf;
+use std::sync::LazyLock;
 
 use async_trait::async_trait;
 use regex::Regex;
@@ -12,6 +13,29 @@ use crate::models::{
 const XSUBS_BASE: &str = "http://xsubs.tv";
 const USER_AGENT: &str =
     "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
+
+static RE_SEASON_EPISODE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"[Ss](\d+)[Ee](\d+)").expect("invalid regex: RE_SEASON_EPISODE"));
+static RE_TITLE_STRIP: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\s*[Ss]\d+[Ee]\d+.*").expect("invalid regex: RE_TITLE_STRIP"));
+static RE_SERIES: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r#"<series\s+srsid="(\d+)"[^>]*>([^<]+)</series>"#).expect("invalid regex: RE_SERIES")
+});
+static RE_SEASON_GROUP: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r#"<series_group\s+ssnnum="(\d+)"\s+ssnid="(\d+)"[^/]*/>"#).expect("invalid regex: RE_SEASON_GROUP")
+});
+static RE_SUBG: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"(?s)<subg>(.*?)</subg>").expect("invalid regex: RE_SUBG"));
+static RE_ETITLE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r#"<etitle\s+number="(\d+)"[^>]*/>"#).expect("invalid regex: RE_ETITLE")
+});
+static RE_SGT: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r#"<sgt\s+ssnnum="(\d+)"\s+epsid="(\d+)"[^/]*/>"#).expect("invalid regex: RE_SGT")
+});
+static RE_SR: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r#"<sr\s+rlsid="(\d+)"[^>]*>(?:[^<]*<fmt>([^<]*)</fmt>)?(?:[^<]*<team>([^<]*)</team>)?"#)
+        .expect("invalid regex: RE_SR")
+});
 
 pub struct XSubsProvider {
     #[allow(dead_code)]
@@ -52,8 +76,7 @@ fn sanitize_title(title: &str) -> String {
 }
 
 fn parse_season_episode(query: &str) -> Option<(u32, u32)> {
-    let re = Regex::new(r"[Ss](\d+)[Ee](\d+)").unwrap();
-    re.captures(query).map(|cap| {
+    RE_SEASON_EPISODE.captures(query).map(|cap| {
         let season = cap[1].parse::<u32>().unwrap_or(1);
         let episode = cap[2].parse::<u32>().unwrap_or(1);
         (season, episode)
@@ -86,8 +109,7 @@ impl SubtitleProvider for XSubsProvider {
         let (season, episode) =
             parse_season_episode(query).ok_or("xsubs: query must contain season/episode pattern (e.g. S01E02)")?;
 
-        let title_re = Regex::new(r"\s*[Ss]\d+[Ee]\d+.*").unwrap();
-        let show_title = title_re.replace(query, "").trim().to_string();
+        let show_title = RE_TITLE_STRIP.replace(query, "").trim().to_string();
         let show_title_sanitized = sanitize_title(&show_title);
 
         let client = build_client()?;
@@ -97,9 +119,7 @@ impl SubtitleProvider for XSubsProvider {
         let all_xml = fetch_text(&client, &all_series_url).await?;
 
         // Parse <series srsid="123">Show Name</series>
-        let series_re = Regex::new(r#"<series\s+srsid="(\d+)"[^>]*>([^<]+)</series>"#).unwrap();
-
-        let show_id = series_re
+        let show_id = RE_SERIES
             .captures_iter(&all_xml)
             .find_map(|cap| {
                 let id = cap[1].to_string();
@@ -117,9 +137,7 @@ impl SubtitleProvider for XSubsProvider {
         let main_xml = fetch_text(&client, &main_url).await?;
 
         // Parse <series_group ssnnum="1" ssnid="456"/>
-        let season_re = Regex::new(r#"<series_group\s+ssnnum="(\d+)"\s+ssnid="(\d+)"[^/]*/>"#).unwrap();
-
-        let season_id = season_re
+        let season_id = RE_SEASON_GROUP
             .captures_iter(&main_xml)
             .find_map(|cap| {
                 let num = cap[1].parse::<u32>().unwrap_or(0);
@@ -139,26 +157,19 @@ impl SubtitleProvider for XSubsProvider {
         //   <sr rlsid="789" published_on="..."><fmt>HDTV</fmt><team>Name</team></sr>
         // </subg>
 
-        let subg_re = Regex::new(r"(?s)<subg>(.*?)</subg>").unwrap();
-        let etitle_re = Regex::new(r#"<etitle\s+number="(\d+)"[^>]*/>"#).unwrap();
-        let sgt_re = Regex::new(r#"<sgt\s+ssnnum="(\d+)"\s+epsid="(\d+)"[^/]*/>"#).unwrap();
-        let sr_re =
-            Regex::new(r#"<sr\s+rlsid="(\d+)"[^>]*>(?:[^<]*<fmt>([^<]*)</fmt>)?(?:[^<]*<team>([^<]*)</team>)?"#)
-                .unwrap();
-
         let mut results = Vec::new();
 
-        for subg_cap in subg_re.captures_iter(&season_xml) {
+        for subg_cap in RE_SUBG.captures_iter(&season_xml) {
             let block = &subg_cap[1];
 
             // Find episode number
-            let ep_num = etitle_re
+            let ep_num = RE_ETITLE
                 .captures(block)
                 .and_then(|c| c[1].parse::<u32>().ok())
                 .unwrap_or(0);
 
             // Check sgt for episode match
-            let matches_episode = sgt_re
+            let matches_episode = RE_SGT
                 .captures_iter(block)
                 .any(|c| c[1].parse::<u32>().unwrap_or(0) == season && c[2].parse::<u32>().unwrap_or(0) == episode);
 
@@ -170,7 +181,7 @@ impl SubtitleProvider for XSubsProvider {
                 continue;
             }
 
-            for sr_cap in sr_re.captures_iter(block) {
+            for sr_cap in RE_SR.captures_iter(block) {
                 let rlsid = sr_cap[1].to_string();
                 let fmt = sr_cap.get(2).map_or("", |m| m.as_str()).to_string();
                 let team = sr_cap.get(3).map_or("", |m| m.as_str()).to_string();
