@@ -18,20 +18,17 @@ static RE_SEASON_EPISODE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"[Ss](\d+)[Ee](\d+)").expect("invalid regex: RE_SEASON_EPISODE"));
 static RE_TITLE_STRIP: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"\s*[Ss]\d+[Ee]\d+.*").expect("invalid regex: RE_TITLE_STRIP"));
-static RE_SERIES: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r#"<series\s+srsid="(\d+)"[^>]*>([^<]+)</series>"#).expect("invalid regex: RE_SERIES")
-});
+static RE_SERIES: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r#"<series\s+srsid="(\d+)"[^>]*>([^<]+)</series>"#).expect("invalid regex: RE_SERIES"));
 static RE_SEASON_GROUP: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r#"<series_group\s+ssnnum="(\d+)"\s+ssnid="(\d+)"[^/]*/>"#).expect("invalid regex: RE_SEASON_GROUP")
 });
 static RE_SUBG: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"(?s)<subg>(.*?)</subg>").expect("invalid regex: RE_SUBG"));
-static RE_ETITLE: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r#"<etitle\s+number="(\d+)"[^>]*/>"#).expect("invalid regex: RE_ETITLE")
-});
-static RE_SGT: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r#"<sgt\s+ssnnum="(\d+)"\s+epsid="(\d+)"[^/]*/>"#).expect("invalid regex: RE_SGT")
-});
+static RE_ETITLE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r#"<etitle\s+number="(\d+)"[^>]*/>"#).expect("invalid regex: RE_ETITLE"));
+static RE_SGT: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r#"<sgt\s+ssnnum="(\d+)"\s+epsid="(\d+)"[^/]*/>"#).expect("invalid regex: RE_SGT"));
 static RE_SR: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r#"<sr\s+rlsid="(\d+)"[^>]*>(?:[^<]*<fmt>([^<]*)</fmt>)?(?:[^<]*<team>([^<]*)</team>)?"#)
         .expect("invalid regex: RE_SR")

@@ -69,7 +69,10 @@ fn build_client() -> Result<reqwest::Client, String> {
                     .parse()
                     .expect("constant header value"),
             );
-            headers.insert("accept-language", "en-US,en;q=0.9".parse().expect("constant header value"));
+            headers.insert(
+                "accept-language",
+                "en-US,en;q=0.9".parse().expect("constant header value"),
+            );
             headers
         })
         .build()

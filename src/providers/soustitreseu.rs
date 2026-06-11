@@ -18,7 +18,10 @@ fn build_client() -> Result<reqwest::Client, String> {
         .user_agent(UA)
         .default_headers({
             let mut h = reqwest::header::HeaderMap::new();
-            h.insert("Referer", SERVER_URL.parse().expect("constant URL is valid header value"));
+            h.insert(
+                "Referer",
+                SERVER_URL.parse().expect("constant URL is valid header value"),
+            );
             h
         })
         .build()

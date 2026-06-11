@@ -16,9 +16,8 @@ const GREEKSUBS_BASE: &str = "https://greeksubs.net/";
 const USER_AGENT: &str =
     "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
 
-static RE_DOWNLOAD_ME: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"downloadMe\('([^']+)'\)").expect("invalid regex: RE_DOWNLOAD_ME")
-});
+static RE_DOWNLOAD_ME: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"downloadMe\('([^']+)'\)").expect("invalid regex: RE_DOWNLOAD_ME"));
 
 pub struct GreekSubsProvider {
     staging_root: PathBuf,
@@ -83,7 +82,6 @@ impl SubtitleProvider for GreekSubsProvider {
         // Parse subtitle rows
         let row_sel = Selector::parse("#elSub > tbody > tr").map_err(|e| format!("greeksubs selector error: {e}"))?;
         let img_sel = Selector::parse("img").map_err(|e| format!("greeksubs selector error: {e}"))?;
-
 
         let mut results = Vec::new();
 
